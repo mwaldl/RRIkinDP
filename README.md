@@ -6,12 +6,25 @@
 ``
 
 ### dependencies
-- g++
-- lboost
-- lIntaRNA
-- fopenmp
-- lRNA
-- leasylogging
+
+
+#### RRIkinDP
+- compiler supporting C++11 standard and OpenMPg++ (fopenmp)
+- boost C++ library version >= 1.50.0 (lboost)
+- IntaRNA (lIntaRNA)
+  - https://github.com/BackofenLab/IntaRNA/#install
+- Vienna RNA package version >= 2.4.14 (lRNA)
+  - https://www.tbi.univie.ac.at/RNA/#download
+  - https://github.com/ViennaRNA/ViennaRNA
+  - conda install -c bioconda viennarna
+- Easylogging++ logging framework (leasylogging)
+  - https://github.com/amrayn/easyloggingpp
+
+#### landscapes.py
+- python3
+- matplotlib
+- seaborn
+- pandas
 
 
 ### help
