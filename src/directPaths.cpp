@@ -683,7 +683,7 @@ main(int argc, char **argv) {
         "compute_states_only",
         "compute states and output their energies to path "
         "specified in 'write_states'")(
-        "no_dangle", "turn off dangle contrubutions at interaction ends")(
+        "no_dangle", "turn off dangle contributions at interaction ends")(
         "fixed_intramolecular_structures",
         "compute accessibilities based on fixed intramolecular structures "
         "instead of based on partition function")(
