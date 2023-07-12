@@ -1,3 +1,11 @@
+/**
+ *
+ * RRIkinDP: Model RNA RNA interaction kinetics on direct paths.
+ *
+ * Copyright (C) Maria Waldl <maria@waldl.org> <maria@tbi.univie.ac.at>
+ *
+ */
+
 #include <iostream>
 #include <string>
 // #include <stdlib>
