@@ -32,7 +32,7 @@ def plot_energy_landscape(
         e_max = df[energy].max()
 
     # states list to energy landscape
-    energy_df = df.pivot(index="i", columns="j", values=energy)
+    energy_df = df.pivot(index="k", columns="l", values=energy)
 
     # only annotate energies if the interaction has fewer than 15 base pairs
     if annotate is None:
@@ -67,8 +67,8 @@ def plot_energy_landscape(
     )
 
     # set axis lables
-    ax.set_ylabel("start base pair i")
-    ax.set_xlabel("end base pair j")
+    ax.set_ylabel("start base pair k")
+    ax.set_xlabel("end base pair l")
 
     # draw axis ticks on all four sides
     plt.tick_params(labeltop=True, labelright=True, top=True, right=True)

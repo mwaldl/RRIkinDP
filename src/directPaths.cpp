@@ -831,7 +831,7 @@ main(int argc, char **argv) {
 
     if (write_states) {
         std::ofstream states_file_handler(states_file);
-        states_file_handler << "i\tj\tE\tEhybrid\tED1\tED2\tED" << std::endl;
+        states_file_handler << "k\tl\tE\tEhybrid\tED1\tED2\tED" << std::endl;
         for (int k = 0; k < q; k++) {
             for (int l = k; l < q; l++) {
                 states_file_handler << k << "\t" << l << "\t" << em.get_e(k, l)
