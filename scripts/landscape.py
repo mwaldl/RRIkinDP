@@ -55,20 +55,22 @@ def plot_energy_landscape(
         linecolor="lightgrey",
         annot=annotate,
         fmt="2.1f",
-        cbar_kws={"label": "kcal/mol", "pad": 0.1, "shrink": 1.0},
+        cbar_kws={
+            "label": f"free energy term: {energy} in kcal/mol",
+            "pad": 0.1,
+            "shrink": 1.0,
+        },
         square=True,
         ax=ax,
         # cbar=False,
     )
 
     # set title
-    plt.title(
-        f"Energy Landscape: {seqId1} + {seqId2} \n{energy} for each interaction from base pair i to base pair j (one based)"
-    )
+    plt.title(f"Energy Landscape: {seqId1} + {seqId2}")
 
     # set axis lables
-    ax.set_ylabel("start base pair k")
-    ax.set_xlabel("end base pair l")
+    ax.set_ylabel("start base pair")
+    ax.set_xlabel("end base pair")
 
     # draw axis ticks on all four sides
     plt.tick_params(labeltop=True, labelright=True, top=True, right=True)
@@ -128,9 +130,9 @@ def plot_energy_landscape(
 
     # write plot to file
     if figure_path is not None:
-        f.savefig(figure_path)
+        f.savefig(figure_path, bbox_inches="tight")
     else:
-        figure_path = f"{seqId1}_{seqId1}_{energy}.pdf"
+        figure_path = f"{seqId1}_{seqId2}_{energy}.pdf"
         f.savefig(figure_path)
 
     # close plot to avoid to many open plots if function is called multiple times
