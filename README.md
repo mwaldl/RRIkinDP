@@ -67,20 +67,6 @@ Docker images cannot access the full file system of the computer they are runnin
 - pandas
 
 
-<<<<<<< Updated upstream
-=======
-
-## Run RRIkinDP
-
-
-### example call
-
-```
-./paths --id_b "ChiX" --seq_b "acaccgucgcuuaaagugacggcauaauaauaaaaaaaugaaauuccucuuugacgggccaauagcgauauuggccauuuuuuu" --id_a "b1737" --seq_a "GUUUGUUACCCAACAAACCGGUUGAAGUAAUUGACUCGCUGCUUUAUGGCAAAGUCGAUGGUUUAGGCGUGCUUAAGGCUGCGGUUGCAGCGAUUAAAAAAGCCGCAGCAAAUUAAUUUAUUUUAAAUUUUCCCGUCAAAGAGUUAUUUCAUAAAUCAAUACCGCAAUAUUUAAAUUGCGGUUUUUAAGGGUAUUUUUCUAUGAGUAAUGUUAUUGCAUCGCUUGAAAAGGUACUCCUCCCUUUUGCAGUUAAAAUAGGAAAGCAGCCACACGUUAAUGCAAUCAAAAAUGGCUUUAUUC" --interaction_bps "(134,56):(135,55):(136,54):(137,53):(138,52):(139,51):(140,50):(141,49):(142,48):(143,47):(146,44):(147,43):(148,42):(149,41):(150,40):(151,39):(152,38)" --seed 4  --write_states "states.tsv"  --write_structures test.fa --write_all_barriers "barriers.tsv" --fixed_intramolecular_structures --str_b "......(((((...)))))............(((((((((.................(((((((....))))))))))))))))"
-```
-
-### Parameters
->>>>>>> Stashed changes
 
 ## Run RRIkinDP
 
@@ -133,39 +119,23 @@ Docker images cannot access the full file system of the computer they are runnin
                                    to  
 --temperature arg (=37)            temperature in Celsius  
 
-<<<<<<< Updated upstream
 ```
-## Plot energylandscape
+## Plot energy landscape
 
 The energylandscape of all interaction structures within the RRIkinDP state space can be plotted with landscape.py that is provided in the scripts subfolder.
 
-### example calls
 
-#### minimal call
-=======
-
-## Plot energy landscape
-
-
-### example call
-
-## minmal call
->>>>>>> Stashed changes
+### minmal call
 
 ```
 python landscape.py states.tsv
 ```
 
-<<<<<<< Updated upstream
-#### with annotated interaction structure
-=======
-## with annotated interaction structure
->>>>>>> Stashed changes
+### with annotated interaction structure
 
 Structure annotations are ploted when both sequences and the interaction base pairs are provided.
 
 ```
-<<<<<<< Updated upstream
 python landscape.py states.tsv \
 --id1 b1737 \
 --id2 ChiX \
@@ -175,13 +145,8 @@ python landscape.py states.tsv \
 --out test.pdf
 ```
 
-### commandline parameters
-=======
-python landscape.py states.tsv --seq1 GUUUGUUACCCAACAAACCGGUUGAAGUAAUUGACUCGCUGCUUUAUGGCAAAGUCGAUGGUUUAGGCGUGCUUAAGGCUGCGGUUGCAGCGAUUAAAAAAGCCGCAGCAAAUUAAUUUAUUUUAAAUUUUCCCGUCAAAGAGUUAUUUCAUAAAUCAAUACCGCAAUAUUUAAAUUGCGGUUUUUAAGGGUAUUUUUCUAUGAGUAAUGUUAUUGCAUCGCUUGAAAAGGUACUCCUCCCUUUUGCAGUUAAAAUAGGAAAGCAGCCACACGUUAAUGCAAUCAAAAAUGGCUUUAUUC --seq2 acaccgucgcuuaaagugacggcauaauaauaaaaaaaugaaauuccucuuugacgggccaauagcgauauuggccauuuuuuu --bp_list '(134,56):(135,55):(136,54):(137,53):(138,52):(139,51):(140,50):(141,49):(142,48):(143,47):(146,44):(147,43):(148,42):(149,41):(150,40):(151,39):(152,38)'
-```
 
-## additional paramters
->>>>>>> Stashed changes
+### additional parameters
 ```
 usage: landscape.py [-h] [-o OUT] [--id1 ID1] [--id2 ID2] [--energy ENERGY] [--seq1 SEQ1] [--seq2 SEQ2] [--bp_list BP_LIST] [--e_min E_MIN]
                     [--e_max E_MAX] [--figuresize FIGURESIZE FIGURESIZE] [--annotate | --remove_annotations]
@@ -213,11 +178,7 @@ optional arguments:
 
 ```
 import landscape
-<<<<<<< Updated upstream
 import RRIkinDPutilities
-=======
-import utilities
->>>>>>> Stashed changes
 
 
 id1 = 'b1737'
@@ -227,15 +188,10 @@ seq2 = 'acaccgucgcuuaaagugacggcauaauaauaaaaaaaugaaauuccucuuugacgggccaauagcgauauu
 bp_list_intarna = '(134,56):(135,55):(136,54):(137,53):(138,52):(139,51):(140,50):(141,49):(142,48):(143,47):(146,44):(147,43):(148,42):(149,41):(150,40):(151,39):(152,38)'
 states_file = 'states.tsv'
 
-<<<<<<< Updated upstream
 bp_list = RRIkinDPutilities.intarna_to_bplist(bp_list_intarna)
 structure = RRIkinDPutilities.get_string_representations(
     seq1, seq2, bp_list, id1="Seq1", id2="Seq2"
 )
-=======
-bp_list = utilities.intarna_to_bplist(bp_list_intarna)
-structure = landscape.InteractionStructure(seq1, seq2, bp_list, id1=id1, id2=id2).get_string_representation()
->>>>>>> Stashed changes
 
 landscape.plot_energy_landscape(states_file,
                           figure_path=None,
