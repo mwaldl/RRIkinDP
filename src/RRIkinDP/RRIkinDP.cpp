@@ -710,6 +710,12 @@ main(int argc, char **argv) {
         return 1;
     }
 
+
+    if (vm.count("version")) {
+        std::cout << "v0.0.1" << std::endl;
+        return 1;
+    }
+
     po::notify(vm);
 
     std::string seq_a = vm["seq_a"].as<std::string>();
