@@ -1,5 +1,7 @@
 # RRIkinDP
+## Installation with conda
 
+`conda install bioconda::rrikindp`
 
 ## Installation and Usage with Docker
 
