@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import argparse
-import .utilities
+from . import utilities
 
 
 def plot_energy_landscape(
@@ -220,8 +220,8 @@ if __name__ == "__main__":
     # only plot struture annotation if both sequences and the base pair list are provided
     structure = None
     if seq1 and seq2 and bp_list_str:
-        bp_list = RRIkinDPutilities.intarna_to_bplist(bp_list_str)
-        structure = RRIkinDPutilities.get_string_representations(
+        bp_list = utilities.intarna_to_bplist(bp_list_str)
+        structure = utilities.get_string_representations(
             seq1, seq2, bp_list, id1=seqId1, id2=seqId2
         )
 
