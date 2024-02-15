@@ -177,8 +177,7 @@ optional arguments:
 ### example usage in a python script
 
 ```
-import landscape
-import RRIkinDPutilities
+import RRIkinDP
 
 
 id1 = 'b1737'
@@ -188,12 +187,12 @@ seq2 = 'acaccgucgcuuaaagugacggcauaauaauaaaaaaaugaaauuccucuuugacgggccaauagcgauauu
 bp_list_intarna = '(134,56):(135,55):(136,54):(137,53):(138,52):(139,51):(140,50):(141,49):(142,48):(143,47):(146,44):(147,43):(148,42):(149,41):(150,40):(151,39):(152,38)'
 states_file = 'states.tsv'
 
-bp_list = RRIkinDPutilities.intarna_to_bplist(bp_list_intarna)
-structure = RRIkinDPutilities.get_string_representations(
+bp_list = RRIkinDP.utilities.intarna_to_bplist(bp_list_intarna)
+structure = RRIkinDP.utilities.get_string_representations(
     seq1, seq2, bp_list, id1="Seq1", id2="Seq2"
 )
 
-landscape.plot_energy_landscape(states_file,
+RRIkinDP.landscape.plot_energy_landscape(states_file,
                           figure_path=None,
                           energy="E",
                           structure = structure,
