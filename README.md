@@ -1,4 +1,7 @@
 # RRIkinDP
+
+https://www.biorxiv.org/content/10.1101/2023.07.28.548983
+
 ## Installation with conda
 
 `conda install bioconda::rrikindp`
