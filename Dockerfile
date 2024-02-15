@@ -19,6 +19,6 @@ RUN cd /easyloggingpp/build; make
 RUN cd /easyloggingpp/build; make install
 
 ENV LD_LIBRARY_PATH="/opt/conda/lib"
-COPY src/directPaths.cpp directPaths.cpp
-RUN g++ -std=c++1y  directPaths.cpp -o paths  -I"`conda info --base`/include" -L"`conda info --base`/lib" -lboost_regex -lboost_program_options -lboost_filesystem -lboost_system -lIntaRNA -fopenmp -lboost_regex -lRNA -leasylogging -fpermissive
+COPY src/RRIkinDP/RRIkinDP.cpp RRIkinDP.cpp
+RUN g++ -std=c++1y  RRIkinDP.cpp -o RRIkinDP  -I"`conda info --base`/include" -L"`conda info --base`/lib" -lboost_regex -lboost_program_options -lboost_filesystem -lboost_system -lIntaRNA -fopenmp -lboost_regex -lRNA -leasylogging -fpermissive
 

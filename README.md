@@ -29,7 +29,7 @@ Docker images cannot access the full file system of the computer they are runnin
    ```
    docker run \
      -v "`pwd`/dataresults":/data \
-     -t rrikindp2 /paths  \
+     -t rrikindp /RRIkinDP  \
      --id_b "ChiX" \
      --seq_b "acaccgucgcuuaaagugacggcauaauaauaaaaaaaugaaauuccucuuugacgggccaauagcgauauuggccauuuuuuu" \
      --id_a "b1737" \
@@ -48,7 +48,7 @@ Docker images cannot access the full file system of the computer they are runnin
 
 ## Building yourself
 
-`Dockerfile` contains the relevant commands for building `src/directPaths.cpp` in a Debian-like environment using `miniconda3` as a package manager for installing most dependencies listed below.
+`Dockerfile` contains the relevant commands for building `src/RRIkinDP.cpp` in a Debian-like environment using `miniconda3` as a package manager for installing most dependencies listed below.
 
 ### Dependencies
 
