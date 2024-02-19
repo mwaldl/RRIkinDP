@@ -15,25 +15,25 @@
 #include <vector>
 #include <cstdlib> // import free()
 
-#include "boost/algorithm/string/classification.hpp"
-#include "boost/algorithm/string/split.hpp"
-#include "boost/program_options.hpp"
-#include "easylogging++.h"
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/program_options.hpp>
+#include <easylogging++.h>
 #include <boost/fusion/adapted/std_pair.hpp>
 #include <boost/spirit/home/x3.hpp>
 
-#include "IntaRNA/Accessibility.h"
-#include "IntaRNA/AccessibilityVrna.h"
-#include "IntaRNA/Interaction.h"
-#include "IntaRNA/RnaSequence.h"
+#include <IntaRNA/Accessibility.h>
+#include <IntaRNA/AccessibilityVrna.h>
+#include <IntaRNA/Interaction.h>
+#include <IntaRNA/RnaSequence.h>
 
 // #include "IntaRNA/ReverseAccessibility.h"
-#include "IntaRNA/AccessibilityConstraint.h"
-#include "IntaRNA/InteractionRange.h"
-#include "IntaRNA/VrnaHandler.h"
+#include <IntaRNA/AccessibilityConstraint.h>
+#include <IntaRNA/InteractionRange.h>
+#include <IntaRNA/VrnaHandler.h>
 
-#include "IntaRNA/InteractionEnergy.h"
-#include "IntaRNA/InteractionEnergyVrna.h"
+#include <IntaRNA/InteractionEnergy.h>
+#include <IntaRNA/InteractionEnergyVrna.h>
 
 extern "C" {
 #include <ViennaRNA/data_structures.h>
