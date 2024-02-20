@@ -707,13 +707,13 @@ main(int argc, char **argv) {
 
     if (vm.count("help")) {
         std::cout << description << std::endl;
-        return 1;
+        return 0;
     }
 
 
     if (vm.count("version")) {
         std::cout << "v0.0.1" << std::endl;
-        return 1;
+        return 0;
     }
 
     po::notify(vm);
