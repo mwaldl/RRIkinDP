@@ -1,2 +1,2 @@
 RRIkinDP: RRIkinDP.cpp
-	$(GXX) -std=c++1y RRIkinDP.cpp -o RRIkinDP -lboost_program_options -lboost_filesystem -lboost_system -lIntaRNA -fopenmp -lboost_regex -lRNA -leasylogging -fpermissive
+	$(CXX) -std=c++1y $(CXXFLAGS) $(LDFLAGS) RRIkinDP.cpp -o RRIkinDP -lboost_program_options -lboost_filesystem -lboost_system -lIntaRNA -fopenmp -lboost_regex -lRNA -leasylogging -fpermissive
