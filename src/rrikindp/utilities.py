@@ -1,3 +1,5 @@
+
+
 def intarna_to_bplist(bplist_string):
     """Convert base pair list from intarna string format to python list.
 

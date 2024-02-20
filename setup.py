@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-with open("src/RRIkinDP/__init__.py") as f:
+with open("src/rrikindp/__init__.py") as f:
     for line in f.readlines():
         if line.startswith('__version__'):
             VERSION = line.strip().split()[-1][1:-1]
@@ -9,7 +9,7 @@ with open("src/RRIkinDP/__init__.py") as f:
 #    requirements = f.read().splitlines()
 
 setup(
-    name='RRIkinDP',
+    name='rrikindp',
     version=VERSION,
     packages=find_packages('src'),
     package_dir={'':'src'},
