@@ -111,7 +111,7 @@ private:
     void
     set_ext_loops_e();
     void
-    set_hybrid_e();
+    set_hybride_e();
     void
     set_accessibility_pf();
     void
@@ -169,7 +169,7 @@ EM::EM(IntaRNA::Interaction input_interaction,
       dangle_(dangle) {
     set_loop_e();
     set_ext_loops_e();
-    set_hybrid_e();
+    set_hybride_e();
     if (use_pf_) {
         set_accessibility_pf();
     } else {
@@ -215,7 +215,7 @@ EM::set_ext_loops_e() {
 }
 
 void
-EM::set_hybrid_e() {
+EM::set_hybride_e() {
     double init_e = energy_.getE_init();
 
     for (int k = 0; k < length_I_; k++) {

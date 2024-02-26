@@ -13,6 +13,6 @@
 
 from . import landscape
 from . import utilities
+from libRRIkinDP import EM, RnaSequence, Interaction
 
-
-__version__ = 'v0.0.1'
+__version__ = 'v0.0.2'
