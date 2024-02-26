@@ -88,6 +88,8 @@ public:
     get_structure2() const;
     std::string
     get_structures() const;
+    double
+    get_minBarrier(int , int , int) const;
 
 private:
     IntaRNA::Interaction interaction_;
@@ -385,6 +387,7 @@ std::string
 EM::get_structure1() const {
     return str1_;
 }
+
 std::string
 EM::get_structure2() const {
     return str2_;
@@ -611,36 +614,32 @@ EM::get_structures() const {
             "\n" + faster_header + " full\n" + sequences + "\n" + intra_str +
             "\n" + inter_str + "\n";
     }
-}
-
-double
-minBarrier(int start, int len, int seed_len, const EM &em) {
-    double barrier[len + 1][len + 1];
-    for (int i = start; i >= 0; i--) {
-        for (int j = start + seed_len - 1; j < len; j++) {
-            //       std::cout << "i: " << i  << ", j: " << j << std::endl;
-            double x = d_infinity;
-            double y = d_infinity;
-            double z = d_infinity;
-            if ((start + seed_len - 1 == j) && (start == i)) {
-                x = em.get_e(i, j);
-            }
-            if (i < start) {
-                y = std::max(em.get_e(i, j), barrier[i + 1][j]);
-            }
-            if (j > start + seed_len - 1) {
-                z = std::max(em.get_e(i, j), barrier[i][j - 1]);
-            }
-            barrier[i][j] = smallest(x, y, z);
-            //        std::cout  << "barrier: "<< barrier[i][j] << ", energy:
-            //        "<< test[i*len+j] << ", b(i+1,j): "<<  barrier[i+1][j] <<
-            //        ", b(i,j-1): "<< barrier[i][j-1] << ", x: "<< x << ", y:
-            //        "<<  y <<
-            //        ", z: "<< z << std::endl;
-        }
     }
-    return barrier[0][len - 1];
-}
+
+    double
+    EM::get_minBarrier(int start, int len, int seed_len) const {
+        double barrier[len + 1][len + 1];
+        for (int i = start; i >= 0; i--) {
+            for (int j = start + seed_len - 1; j < len; j++) {
+                double x = d_infinity;
+                double y = d_infinity;
+                double z = d_infinity;
+                if ((start + seed_len - 1 == j) && (start == i)) {
+                    x = get_e(i, j);
+                }
+                if (i < start) {
+                    y = std::max(get_e(i, j), barrier[i + 1][j]);
+                }
+                if (j > start + seed_len - 1) {
+                    z = std::max(get_e(i, j), barrier[i][j - 1]);
+                }
+                barrier[i][j] = smallest(x, y, z);
+            }
+        }
+        return barrier[0][len - 1];
+    }
+
+
 
 //=====================================================================================
 
@@ -875,7 +874,7 @@ main(int argc, char **argv) {
         //   compute min barrier for current seed
         //   ====================================
 
-        double min_barrier = minBarrier(start, q, seed_len, em);
+        double min_barrier = em.get_minBarrier(start, q, seed_len);
 
         //   track min barrier
         //   =================
