@@ -79,7 +79,7 @@ Docker images cannot access the full file system of the computer they are runnin
 ### example call
 
 ```
-./paths \
+RRIkinDP \
 --id_b "ChiX" \
 --seq_b "acaccgucgcuuaaagugacggcauaauaauaaaaaaaugaaauuccucuuugacgggccaauagcgauauuggccauuuuuuu" \
 --id_a "b1737" \
