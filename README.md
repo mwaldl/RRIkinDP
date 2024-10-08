@@ -125,6 +125,21 @@ Docker images cannot access the full file system of the computer they are runnin
 --temperature arg (=37)            temperature in Celsius  
 
 ```
+
+### Python bindings
+
+```
+mRNA = 'GUUUGUUACCCAACAAACCGGUUGAAGUAAUUGACUCGCUGCUUUAUGGCAAAGUCGAUGGUUUAGGCGUGCUUAAGGCUGCGGUUGCAGCGAUUAAAAAAGCCGCAGCAAAUUAAUUUAUUUUAAAUUUUCCCGUCAAAGAGUUAUUUCAUAAAUCAAUACCGCAAUAUUUAAAUUGCGGUUUUUAAGGGUAUUUUUCUAUGAGUAAUGUUAUUGCAUCGCUUGAAAAGGUACUCCUCCCUUUUGCAGUUAAAAUAGGAAAGCAGCCACACGUUAAUGCAAUCAAAAAUGGCUUUAUUC'
+sRNA = 'acaccgucgcuuaaagugacggcauaauaauaaaaaaaugaaauuccucuuugacgggccaauagcgauauuggccauuuuuuu'
+
+bp_list_intarna = '(134,56):(135,55):(136,54):(137,53):(138,52):(139,51):(140,50):(141,49):(142,48):(143,47):(146,44):(147,43):(148,42):(149,41):(150,40):(151,39):(152,38)'
+bp_list = RRIkinDP.utilities.intarna_to_bplist(bp_list_intarna)
+
+el = rri.EnergyLandscape(sRNA, mRNA, bp_list)
+min_barrier_energies = el.get_min_barrier_Es(seed_length)
+seed_Es = el.get_seed_Es(seed_length)
+```
+
 ## Plot energy landscape
 
 The energylandscape of all interaction structures within the RRIkinDP state space can be plotted with landscape.py that is provided in the scripts subfolder.
