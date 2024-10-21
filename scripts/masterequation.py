@@ -353,7 +353,14 @@ def run_treekin(
 
 # TODO: get features from treekin output
 
-def plot_treekin(treekin_output, treekin_plot):
+def plot_treekin(
+    treekin_output,
+    treekin_plot,
+    state_names=None,
+    labels=True,
+    label_cutoff_fraction=0.1,
+    figsize=(7, 4),
+):
     """Plot treekin output to file.
 
     Parameters
@@ -363,24 +370,74 @@ def plot_treekin(treekin_output, treekin_plot):
     treekin_plot : string
                    Path that plot is saved to.
                    Fileformat is derived from ending. example: '.png', '.pdf'
+    states_names : List of names for each state in the treekin output file.
+    labels : bool
+             Wether to plot state lables.
+    label_cutoff_fraction : float between 0 and 1
+                            Popluation fraction that a state has to represent at
+                            at least one time point to get labled.
+    figsize : duple of floats
+              Figure size in inches.
 
-    Todo: states lables, figure size
+    Todo: states labels as text instead of marker
+    Notes: lables could also be done with https://pypi.org/project/matplotlib-label-lines/
     """
-    data = pd.read_csv(treekin_output, header=None, sep=" ", comment="#")
-    data = data.iloc[:, :-1]  # remove empty column (tailing spaces in input)
-    f = plt.figure()
-    # f.set_size_inches(7, 5)
-    data[len(data.columns)] = data[len(data.columns) - 1] + data[len(data.columns) - 2]
-    plt.plot(data[0], data.loc[:, data.columns != 0])
-    plt.ylabel("Population")
-    plt.xlabel("Time (a.u.)")
-    # plt.legend(
-    #     title="states:",
-    #     labels=data.columns.values.tolist()[1:],
-    #     loc="upper right",
-    # )
-    plt.ylim(-0.1, 1.1)
-    plt.xscale("log")
+
+    df = pd.read_csv(
+        treekin_output,
+        index_col=0,
+        header=None,
+        names=state_names,
+        sep=" ",
+        comment="#",
+    )
+
+    print(df.head())
+
+    print(df.shape)
+    print(len(state_names))
+
+    df = df.iloc[:, :-1]  # remove empty column (tailing spaces in input)
+
+    f, ax = plt.subplots(figsize=figsize)
+
+    # plt.plot(data[0], data.loc[:, data.columns != 0])
+    ax.set_ylabel("Population")
+    ax.set_xlabel("Time (a.u.)")
+
+    #data[len(data.columns)] = data[len(data.columns) - 1] + data[len(data.columns) - 2]
+    #plt.plot(data[0], data.loc[:, data.columns != 0])
+
+    for col in df.columns:
+        p = sn.lineplot(x=df.index, y=df[col], ax=ax, legend=False)
+        color = p.get_lines()[-1].get_color()
+        max_population = df[col].max()
+        if not labels:
+            continue
+        if max_population < label_cutoff_fraction:
+            continue
+        max_population_time = df[[col]].idxmax()
+        plt.plot(
+            max_population_time,
+            max_population,
+            marker="o",
+            color="white",
+            alpha=0.7,
+            markersize=14,
+        )
+        plt.plot(
+            max_population_time,
+            max_population,
+            marker="$%s$" % col,
+            color=color,
+            markersize=12,
+            # markeredgecolor="black",
+            # markeredgewidth=0.05,
+        )
+
+    ax.set_ylim(-0.05, 1.05)
+    ax.set_xscale("log")
+
     f.savefig(treekin_plot, bbox_inches="tight")
     plt.close(f)
 
@@ -404,17 +461,21 @@ if __name__ == "__main__":
     treekin_plot = args.figure
     start_state = args.start
 
-    treekin_rates_from_RRIkinDP_states(
+    m, state_names = treekin_rates_from_RRIkinDP_states(
         states_file,
         rates_file,
         energy_type="E",
         absorbing_states=[],
-        absorbin_full_interaction=False,
+        absorbin_full_interaction=True,
         dissociation_at=2,
         absorbing_dissociated_state=False,
         energy_penalty_absorbing_state=19,
         binary=False,
     )
+
+    print(state_names)
+
+
     run_treekin(
         rates_file,
         start_state,
@@ -422,4 +483,6 @@ if __name__ == "__main__":
         write_treekin_output_files=True,
         treekin_output_file=treekin_out,
     )
+
+
     plot_treekin(treekin_out, treekin_plot)
