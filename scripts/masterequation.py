@@ -8,10 +8,14 @@ import matplotlib.pyplot as plt
 import seaborn as sn
 import json
 
-R = 1.98720425864083 * math.pow(10, -3)  # gas contant in dagcal⋅K−1⋅mol−1
+R = 1.98720425864083 * math.pow(
+    10, -3
+)  # gas contant in dagcal⋅K−1⋅mol−1
 T = 273.15  # 0 Celsius in K
-MIN_RATE = 10 ** (-14) # TODO: unit
-DISSOCIATED_STATE_ENERGY = 0 # in dagcal⋅K−1⋅mol−1
+MIN_RATE = 10 ** (-14)  # TODO: unit
+DISSOCIATED_STATE_ENERGY = (
+    0  # in dagcal⋅K−1⋅mol−1
+)
 
 
 def format_rates(rate):
@@ -43,6 +47,7 @@ def check_rate(rate, states, min_rate=0.00000001):
         )
     return rate
 
+
 def get_interaction_length(states_file):
     """Return interaction length from directpaths states output."""
     df = pd.read_csv(states_file, sep="\t")
@@ -51,10 +56,17 @@ def get_interaction_length(states_file):
 
 def two2oneD(k, l, interaction_length):
     """Get index of state that starts at bp k and ends at bp l."""
-    i = (k + 1) * interaction_length  # all states (0:k,0:interaction_length)
-    i -= (k + 1) * k / 2  # minus all states where l<k
-    i -= interaction_length - l - 1  # minus states (k,l:interaction_length)
+    i = (
+        k + 1
+    ) * interaction_length  # all states (0:k,0:interaction_length)
+    i -= (
+        (k + 1) * k / 2
+    )  # minus all states where l<k
+    i -= (
+        interaction_length - l - 1
+    )  # minus states (k,l:interaction_length)
     return i
+
 
 def treekin_rates_from_RRIkinDP_states(
     states_file,
@@ -95,7 +107,9 @@ def treekin_rates_from_RRIkinDP_states(
     """
 
     # Warning on absorbing state rates
-    if (not binary) and (energy_penalty_absorbing_state > 10):
+    if (not binary) and (
+        energy_penalty_absorbing_state > 10
+    ):
         warnings.warn(
             "Reset energy penalty for absorbing states to 10kcal/mol. "
             + str(energy_penalty_absorbing_state)
@@ -115,34 +129,57 @@ def treekin_rates_from_RRIkinDP_states(
         for line in f:
             if i == 0:
                 lables = line.strip().split("\t")
-                index_e = lables.index(energy_type)
+                index_e = lables.index(
+                    energy_type
+                )
                 index_i = lables.index("k")
                 index_j = lables.index("l")
             else:
                 data = line.strip().split("\t")
                 states.append(
                     [
-                        float(data[index_e]) / 100,
-                        (int(data[index_i]), int(data[index_j])),
+                        float(data[index_e])
+                        / 100,
+                        (
+                            int(data[index_i]),
+                            int(data[index_j]),
+                        ),
                     ]
                 )
-                states_dict[(int(data[index_i]), int(data[index_j]))] = {
-                    "energy": float(data[index_e]) / 100,
+                states_dict[
+                    (
+                        int(data[index_i]),
+                        int(data[index_j]),
+                    )
+                ] = {
+                    "energy": float(data[index_e])
+                    / 100,
                     "index": i - 1,
                 }
-                if int(data[index_j]) > interaction_length:
-                    interaction_length = int(data[index_j])
+                if (
+                    int(data[index_j])
+                    > interaction_length
+                ):
+                    interaction_length = int(
+                        data[index_j]
+                    )
             i = i + 1
     interaction_length += 1
     energies = [state[0] for state in states]
 
     # set up absorbing state
     if absorbin_full_interaction:
-        absorbing_states.append(states_dict[0, interaction_length - 1]["index"])
+        absorbing_states.append(
+            states_dict[
+                0, interaction_length - 1
+            ]["index"]
+        )
     absorbing_states = list(set(absorbing_states))
 
     # count states
-    number_of_states = len(states) + len(absorbing_states)
+    number_of_states = len(states) + len(
+        absorbing_states
+    )
     if dissociation_at is not "None":
         number_of_states += 1
     if absorbing_dissociated_state is not "None":
@@ -169,14 +206,21 @@ def treekin_rates_from_RRIkinDP_states(
         ]
         for l in connected_states:
             row[l] = check_rate(
-                get_rate(energies[k], energies[l]), (k, l), min_rate=MIN_RATE
+                get_rate(
+                    energies[k], energies[l]
+                ),
+                (k, l),
+                min_rate=MIN_RATE,
             )
 
         if absorbing_dissociated_state:
             if current_j - current_i == 0:
                 row.append(
                     check_rate(
-                        get_rate(energies[k], DISSOCIATED_STATE_ENERGY),
+                        get_rate(
+                            energies[k],
+                            DISSOCIATED_STATE_ENERGY,
+                        ),
                         (k, "dissociated-state"),
                         min_rate=MIN_RATE,
                     )
@@ -184,14 +228,22 @@ def treekin_rates_from_RRIkinDP_states(
             else:
                 row.append(0.0)
 
-        if (dissociation_at is not "None") and current_j - current_i < dissociation_at:
+        if (
+            (dissociation_at is not "None")
+            and current_j - current_i
+            < dissociation_at
+        ):
             row.append(
                 check_rate(
                     get_rate(
                         energies[k],
-                        energies[k] - energy_penalty_absorbing_state,
+                        energies[k]
+                        - energy_penalty_absorbing_state,
                     ),
-                    (k, "dissociated-absorbing-state"),
+                    (
+                        k,
+                        "dissociated-absorbing-state",
+                    ),
                     min_rate=MIN_RATE,
                 )
             )
@@ -199,10 +251,20 @@ def treekin_rates_from_RRIkinDP_states(
             row.append(0.0)
 
         if k in absorbing_states:
-            rates_to_absorbing = [0.0] * len(absorbing_states)
-            index_absorbing = absorbing_states.index(k)
-            rates_to_absorbing[index_absorbing] = check_rate(
-                get_rate(energies[k], energies[k] - energy_penalty_absorbing_state),
+            rates_to_absorbing = [0.0] * len(
+                absorbing_states
+            )
+            index_absorbing = (
+                absorbing_states.index(k)
+            )
+            rates_to_absorbing[
+                index_absorbing
+            ] = check_rate(
+                get_rate(
+                    energies[k],
+                    energies[k]
+                    - energy_penalty_absorbing_state,
+                ),
                 (k, "absorbing-state"),
                 min_rate=MIN_RATE,
             )
@@ -219,9 +281,13 @@ def treekin_rates_from_RRIkinDP_states(
                 check_rate(
                     get_rate(
                         DISSOCIATED_STATE_ENERGY,
-                        DISSOCIATED_STATE_ENERGY - energy_penalty_absorbing_state,
+                        DISSOCIATED_STATE_ENERGY
+                        - energy_penalty_absorbing_state,
                     ),
-                    ("dissociated-state", "dissociated-absorbing-state"),
+                    (
+                        "dissociated-state",
+                        "dissociated-absorbing-state",
+                    ),
                     min_rate=MIN_RATE,
                 )
             )
@@ -229,7 +295,10 @@ def treekin_rates_from_RRIkinDP_states(
         for i in range(interaction_length):
             k = states_dict[(i, i)]["index"]
             row[k] = check_rate(
-                get_rate(DISSOCIATED_STATE_ENERGY, states[k][0]),
+                get_rate(
+                    DISSOCIATED_STATE_ENERGY,
+                    states[k][0],
+                ),
                 ("dissociated-state", k),
                 min_rate=MIN_RATE,
             )
@@ -237,38 +306,69 @@ def treekin_rates_from_RRIkinDP_states(
 
     # add rate entries for a dissociated state
     if dissociation_at is not "None":
-        states.append([DISSOCIATED_STATE_ENERGY, ("d", "d")])
+        states.append(
+            [DISSOCIATED_STATE_ENERGY, ("d", "d")]
+        )
         row = [0.0] * number_of_states
         for i in range(interaction_length):
             for l in range(dissociation_at):
                 if i + l < interaction_length:
-                    k = states_dict[(i, i + l)]["index"]
+                    k = states_dict[(i, i + l)][
+                        "index"
+                    ]
                     row[k] = check_rate(
                         get_rate(
-                            states[k][0] - energy_penalty_absorbing_state,
+                            states[k][0]
+                            - energy_penalty_absorbing_state,
                             states[k][0],
                         ),
-                        ("dissociated-absorbing-state", k),
+                        (
+                            "dissociated-absorbing-state",
+                            k,
+                        ),
                         min_rate=MIN_RATE,
                     )
         if absorbing_dissociated_state:
-            states.append([DISSOCIATED_STATE_ENERGY- energy_penalty_absorbing_state, ("a", "d")])
+            states.append(
+                [
+                    DISSOCIATED_STATE_ENERGY
+                    - energy_penalty_absorbing_state,
+                    ("a", "d"),
+                ]
+            )
             row[len(states)] = check_rate(
                 get_rate(
-                    DISSOCIATED_STATE_ENERGY - energy_penalty_absorbing_state,
+                    DISSOCIATED_STATE_ENERGY
+                    - energy_penalty_absorbing_state,
                     DISSOCIATED_STATE_ENERGY,
                 ),
-                ("dissociated-absorbing-state", "disscociated-state"),
+                (
+                    "dissociated-absorbing-state",
+                    "disscociated-state",
+                ),
                 min_rate=MIN_RATE,
             )
         matrix.append(row)
 
     # add rate entries for absorbing states (except for absorbing dissociated state)
     for a in absorbing_states:
-        states.append([states[a][0] - energy_penalty_absorbing_state, ("a", f"{states[a][1][0]}:{states[a][1][1]}")])
+        states.append(
+            [
+                states[a][0]
+                - energy_penalty_absorbing_state,
+                (
+                    "a",
+                    f"{states[a][1][0]}:{states[a][1][1]}",
+                ),
+            ]
+        )
         row = [0.0] * number_of_states
         row[a] = check_rate(
-            get_rate(states[a][0] - energy_penalty_absorbing_state, states[a][0]),
+            get_rate(
+                states[a][0]
+                - energy_penalty_absorbing_state,
+                states[a][0],
+            ),
             ("absorbing_state", a),
             min_rate=MIN_RATE,
         )
@@ -278,10 +378,16 @@ def treekin_rates_from_RRIkinDP_states(
     if binary:
         # transpose matrix
         t_matrix = [
-            [matrix[j][i] for j in range(len(matrix))] for i in range(len(matrix[0]))
+            [
+                matrix[j][i]
+                for j in range(len(matrix))
+            ]
+            for i in range(len(matrix[0]))
         ]
         out = open(rate_file, "w+b")
-        out.write(struct.pack("<i", number_of_states))
+        out.write(
+            struct.pack("<i", number_of_states)
+        )
         for row in t_matrix:
             for e in row:
                 out.write(struct.pack("<d", e))
@@ -297,7 +403,10 @@ def treekin_rates_from_RRIkinDP_states(
     # save state names
     if state_names_file == None:
         state_names_file = rate_file + ".json"
-    state_names = [f"{state[1][0]}:{state[1][1]}" for state in states]
+    state_names = [
+        f"{state[1][0]}:{state[1][1]}"
+        for state in states
+    ]
     with open(state_names_file, "w") as json_file:
         json.dump(state_names, json_file)
 
@@ -340,18 +449,28 @@ def run_treekin(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    stdout_data, stderr_data = treekin_process.communicate()
+    (
+        stdout_data,
+        stderr_data,
+    ) = treekin_process.communicate()
     stderr_data = stderr_data.decode()
-    treekin_output = StringIO(stdout_data.decode())
+    treekin_output = StringIO(
+        stdout_data.decode()
+    )
 
     if write_treekin_output_files:
-        with open(treekin_output_file, "w") as out_handle:
-            out_handle.write(treekin_output.read())
+        with open(
+            treekin_output_file, "w"
+        ) as out_handle:
+            out_handle.write(
+                treekin_output.read()
+            )
 
     print(stderr_data)
 
 
 # TODO: get features from treekin output
+
 
 def plot_treekin(
     treekin_output,
@@ -360,8 +479,8 @@ def plot_treekin(
     labels=True,
     label_cutoff_fraction=0.1,
     figsize=(7, 4),
-    x_lim = (None, None),
-    y_lim = (-0.05, 1.05),
+    x_lim=(None, None),
+    y_lim=(-0.05, 1.05),
 ):
     """Plot treekin output to file.
 
@@ -395,7 +514,7 @@ def plot_treekin(
             treekin_output,
             index_col=0,
             header=None,
-            names=state_names+['nan'],
+            names=state_names + ["nan"],
             sep=" ",
             comment="#",
         )
@@ -407,10 +526,11 @@ def plot_treekin(
             header=None,
             sep=" ",
             comment="#",
-        )        
+        )
 
-
-    df = df.iloc[:, :-1]  # remove empty column (tailing spaces in input)
+    df = df.iloc[
+        :, :-1
+    ]  # remove empty column (tailing spaces in input)
 
     # set figure size
     f, ax = plt.subplots(figsize=figsize)
@@ -423,7 +543,12 @@ def plot_treekin(
     for col in df.columns:
 
         # plot state population
-        p = sn.lineplot(x=df.index, y=df[col], ax=ax, legend=False)
+        p = sn.lineplot(
+            x=df.index,
+            y=df[col],
+            ax=ax,
+            legend=False,
+        )
         color = p.get_lines()[-1].get_color()
         max_population = df[col].max()
 
@@ -431,26 +556,25 @@ def plot_treekin(
         if not labels:
             continue
 
-
         # check if state passes population cutoff to get labled
         if max_population < label_cutoff_fraction:
             continue
         max_population_time = df[[col]].idxmax()
 
-        edge_col = 'white'
+        edge_col = "white"
         text = col
 
         # mark absorbing states with grey marker edge and remove leading "a:" in state name
-        if col.startswith('a'):
-            edge_col = 'grey'
-            text = ':'.join(col.split(':')[1:])
+        if col.startswith("a"):
+            edge_col = "grey"
+            text = ":".join(col.split(":")[1:])
 
         # plot state label background
         plt.plot(
             max_population_time,
             max_population,
             marker="o",
-            color='white',
+            color="white",
             markeredgecolor=edge_col,
             alpha=0.7,
             markersize=14,
@@ -467,11 +591,10 @@ def plot_treekin(
             # markeredgewidth=0.05,
         )
 
-
     # set time axis to logarithmic scale
     ax.set_xscale("log")
 
-   # set plot range
+    # set plot range
     ax.set_xlim(x_lim[0], x_lim[1])
     ax.set_ylim(y_lim[0], y_lim[1])
 
@@ -485,12 +608,34 @@ def plot_treekin(
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Compute RNA-RNA interaction formation dynamics by solving the master equation.")
-    parser.add_argument("states", help="filepath to input states file as generated by RRIkinDP", type=str)
-    parser.add_argument("start", help="index of initial state", type=int)
-    parser.add_argument("rates", help="filepath to save rate file to", type=str)
-    parser.add_argument("out", help="filepath to save state probabilities to", type=str)
-    parser.add_argument("figure", help="filepath to save state probabilities plot to", type=str)
+    parser = argparse.ArgumentParser(
+        description="Compute RNA-RNA interaction formation dynamics by solving the master equation."
+    )
+    parser.add_argument(
+        "states",
+        help="filepath to input states file as generated by RRIkinDP",
+        type=str,
+    )
+    parser.add_argument(
+        "start",
+        help="index of initial state",
+        type=int,
+    )
+    parser.add_argument(
+        "rates",
+        help="filepath to save rate file to",
+        type=str,
+    )
+    parser.add_argument(
+        "out",
+        help="filepath to save state probabilities to",
+        type=str,
+    )
+    parser.add_argument(
+        "figure",
+        help="filepath to save state probabilities plot to",
+        type=str,
+    )
 
     args = parser.parse_args()
     states_file = args.states
@@ -499,7 +644,10 @@ if __name__ == "__main__":
     treekin_plot = args.figure
     start_state = args.start
 
-    m, state_names = treekin_rates_from_RRIkinDP_states(
+    (
+        m,
+        state_names,
+    ) = treekin_rates_from_RRIkinDP_states(
         states_file,
         rates_file,
         energy_type="E",
@@ -519,8 +667,8 @@ if __name__ == "__main__":
         treekin_output_file=treekin_out,
     )
 
-
-    plot_treekin(treekin_out,
-    treekin_plot, 
-    state_names=state_names,
+    plot_treekin(
+        treekin_out,
+        treekin_plot,
+        state_names=state_names,
     )
