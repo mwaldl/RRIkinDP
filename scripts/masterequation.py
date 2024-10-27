@@ -5,7 +5,7 @@ from io import StringIO
 import math
 import pandas as pd
 import matplotlib.pyplot as plt
-#import seaborn as sn
+import seaborn as sn
 import json
 
 R = 1.98720425864083 * math.pow(10, -3)  # gas contant in dagcal⋅K−1⋅mol−1
@@ -360,6 +360,8 @@ def plot_treekin(
     labels=True,
     label_cutoff_fraction=0.1,
     figsize=(7, 4),
+    x_lim = (None, None),
+    y_lim = (-0.05, 1.05),
 ):
     """Plot treekin output to file.
 
@@ -378,66 +380,102 @@ def plot_treekin(
                             at least one time point to get labled.
     figsize : duple of floats
               Figure size in inches.
-
+    x_lim : duple of floats
+            Plot range on x-axis.
+    y_lim = duple of floats
+            Plot range on y-axis.
     Todo: states labels as text instead of marker
     Notes: lables could also be done with https://pypi.org/project/matplotlib-label-lines/
     """
+    # read treekin output file
+    if state_names is not None:
+        print(len(state_names))
 
-    df = pd.read_csv(
-        treekin_output,
-        index_col=0,
-        header=None,
-        names=state_names,
-        sep=" ",
-        comment="#",
-    )
+        df = pd.read_csv(
+            treekin_output,
+            index_col=0,
+            header=None,
+            names=state_names+['nan'],
+            sep=" ",
+            comment="#",
+        )
 
-    print(df.head())
+    else:
+        df = pd.read_csv(
+            treekin_output,
+            index_col=0,
+            header=None,
+            sep=" ",
+            comment="#",
+        )        
 
-    print(df.shape)
-    print(len(state_names))
 
     df = df.iloc[:, :-1]  # remove empty column (tailing spaces in input)
 
+    # set figure size
     f, ax = plt.subplots(figsize=figsize)
 
-    # plt.plot(data[0], data.loc[:, data.columns != 0])
+    # set axis labels
     ax.set_ylabel("Population")
     ax.set_xlabel("Time (a.u.)")
 
-    #data[len(data.columns)] = data[len(data.columns) - 1] + data[len(data.columns) - 2]
-    #plt.plot(data[0], data.loc[:, data.columns != 0])
-
+    # call plot function for each state
     for col in df.columns:
+
+        # plot state population
         p = sn.lineplot(x=df.index, y=df[col], ax=ax, legend=False)
         color = p.get_lines()[-1].get_color()
         max_population = df[col].max()
+
+        # continue if no lable should be plotted
         if not labels:
             continue
+
+
+        # check if state passes population cutoff to get labled
         if max_population < label_cutoff_fraction:
             continue
         max_population_time = df[[col]].idxmax()
+
+        edge_col = 'white'
+        text = col
+
+        # mark absorbing states with grey marker edge and remove leading "a:" in state name
+        if col.startswith('a'):
+            edge_col = 'grey'
+            text = ':'.join(col.split(':')[1:])
+
+        # plot state label background
         plt.plot(
             max_population_time,
             max_population,
             marker="o",
-            color="white",
+            color='white',
+            markeredgecolor=edge_col,
             alpha=0.7,
             markersize=14,
         )
+
+        # plot state label text
         plt.plot(
             max_population_time,
             max_population,
-            marker="$%s$" % col,
+            marker="$%s$" % text,
             color=color,
             markersize=12,
             # markeredgecolor="black",
             # markeredgewidth=0.05,
         )
 
-    ax.set_ylim(-0.05, 1.05)
+
+    # set time axis to logarithmic scale
     ax.set_xscale("log")
 
+   # set plot range
+    ax.set_xlim(x_lim[0], x_lim[1])
+    ax.set_ylim(y_lim[0], y_lim[1])
+
+    # save figure
     f.savefig(treekin_plot, bbox_inches="tight")
     plt.close(f)
 
@@ -473,9 +511,6 @@ if __name__ == "__main__":
         binary=False,
     )
 
-    print(state_names)
-
-
     run_treekin(
         rates_file,
         start_state,
@@ -485,4 +520,7 @@ if __name__ == "__main__":
     )
 
 
-    plot_treekin(treekin_out, treekin_plot)
+    plot_treekin(treekin_out,
+    treekin_plot, 
+    state_names=state_names,
+    )
