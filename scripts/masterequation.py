@@ -336,7 +336,7 @@ def treekin_rates_from_RRIkinDP_states(
                     ("a", "d"),
                 ]
             )
-            row[len(states)] = check_rate(
+            row[len(states)-1] = check_rate(
                 get_rate(
                     DISSOCIATED_STATE_ENERGY
                     - energy_penalty_absorbing_state,
@@ -569,6 +569,13 @@ def plot_treekin(
             edge_col = "grey"
             text = ":".join(col.split(":")[1:])
 
+        # set text size in state labels
+        text_markersize = 12
+        if len(text)<4:
+            text_markersize = 10
+            if len(text)<2:
+                text_markersize = 7
+
         # plot state label background
         plt.plot(
             max_population_time,
@@ -586,7 +593,7 @@ def plot_treekin(
             max_population,
             marker="$%s$" % text,
             color=color,
-            markersize=12,
+            markersize=text_markersize,
             # markeredgecolor="black",
             # markeredgewidth=0.05,
         )
