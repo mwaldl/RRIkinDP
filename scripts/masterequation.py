@@ -140,8 +140,8 @@ def treekin_rates_from_RRIkinDP_states(
     --------
     ```
     matrix, state_names = treekin_rates_from_RRIkinDP_states(
-        states_file="input_states.txt",
-        rate_file="output_rates.dat",
+        states_file="input_states.tsv",
+        rate_file="output_rates.txt",
         energy_type="E",
         absorbing_states=[12, 1, 24],
         absorbin_full_interaction=True,
@@ -560,30 +560,73 @@ def plot_treekin(
     x_lim=(None, None),
     y_lim=(-0.05, 1.05),
 ):
-    """Plot treekin output to file.
+    """
+    Plot the Treekin output, showing state probabilities over time.
 
     Parameters
     ----------
-    treekin_output : string
-                     Path to treekin output file that is plotted.
-    treekin_plot : string
-                   Path that plot is saved to.
-                   Fileformat is derived from ending. example: '.png', '.pdf'
-    states_names : List of names for each state in the treekin output file.
-    labels : bool
-             Wether to plot state lables.
-    label_cutoff_fraction : float between 0 and 1
-                            Popluation fraction that a state has to represent at
-                            at least one time point to get labled.
-    figsize : duple of floats
-              Figure size in inches.
-    x_lim : duple of floats
-            Plot range on x-axis.
-    y_lim = duple of floats
-            Plot range on y-axis.
-    Todo: states labels as text instead of marker
-    Notes: lables could also be done with https://pypi.org/project/matplotlib-label-lines/
+    treekin_output : str
+        Path to the Treekin output file to be plotted. This file should contain
+        the population data for each state over time.
+    treekin_plot : str
+        Output path for the saved plot file. The file format is inferred from the
+        file extension, e.g., '.png', '.pdf', '.svg', etc.
+    state_names : list of str or None, optional
+        List of names for each state, to be used as labels in the plot. If None,
+        default numbering will be used. State names should correspond to columns
+        in the Treekin output file.
+    labels : bool, optional
+        If True, labels for individual states will be displayed on the plot. Labels
+        will only appear for states with a maximum population exceeding the
+        `label_cutoff_fraction`. Default is True.
+    label_cutoff_fraction : float, optional
+        Minimum population fraction (0-1) that a state must reach at least once
+        to be labeled in the plot. States with populations below this threshold
+        will not be labeled, even if `labels` is True. Default is 0.1.
+    figsize : tuple of float, optional
+        Size of the figure in inches, given as (width, height). Default is (7, 4).
+    x_lim : tuple of float or None, optional
+        Plot range on the x-axis. Set to (None, None) to allow automatic limits
+        based on data. Default is (None, None).
+    y_lim : tuple of float, optional
+        Plot range on the y-axis, usually set between -0.05 and 1.05 for population
+        values between 0 and 1 with a small margin. Default is (-0.05, 1.05).
+
+    Returns
+    -------
+    None
+        Saves the plot to the specified `treekin_plot` path.
+
+    Todo
+    ----
+    - Consider adding labels as text annotations instead of markers for improved readability.
+    - Evaluate using external libraries like `matplotlib-label-lines` to automate label positioning.
+
+    Notes
+    -----
+    - **Logarithmic Time Axis**: The x-axis is displayed on a logarithmic scale to capture
+      population dynamics over time.
+    - **Labeling States**: If `labels` is enabled, states with populations that peak above
+      `label_cutoff_fraction` are labeled on the plot. Absorbing states are marked with a
+      distinct edge color (gray), and state names are derived from `state_names` if provided.
+    - **File Format**: The plot's file format is determined by the file extension of
+      `treekin_plot`. Ensure the extension matches the desired format (e.g., `.png`, `.pdf`).
+
+    Example
+    -------
+    ```
+    plot_treekin(
+        treekin_output="treekin_output.txt",
+        treekin_plot="state_populations.pdf",
+        labels=True,
+        label_cutoff_fraction=0.1,
+        figsize=(8, 5),
+        x_lim=(1, 1e6),
+        y_lim=(0, 1)
+    )
+    ```
     """
+    
     # read treekin output file
     if state_names is not None:
         df = pd.read_csv(
