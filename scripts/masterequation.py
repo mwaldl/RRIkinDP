@@ -423,6 +423,35 @@ def run_treekin(
     treekin_output_file=None,
     verbose = False,
 ):
+    """
+    Run the treekin executable to compute RNA-RNA interaction dynamics.
+
+    Parameters
+    ----------
+    rate_file : str
+        Path to the rates input file in the specified format (binary or plain text).
+    start_state : int
+        Index of the starting state (0-based) in the interaction network.
+    binary : bool, optional
+        If True, the rates input file is in binary format, which offers higher precision (default is True).
+    treekin_executable : str, optional
+        Path to the treekin executable. Default assumes 'treekin' is available in the system PATH.
+    write_treekin_output_files : bool, optional
+        If True, writes the treekin output to a file specified by 'treekin_output_file' (default is True).
+    treekin_output_file : str or None, optional
+        Path to save the raw output from treekin. Required if 'write_treekin_output_files' is True.
+    verbose : bool, optional
+        If True, prints detailed output and errors from treekin execution (default is False).
+
+    Returns
+    -------
+    None
+        Executes treekin and saves its output if specified.
+
+    Notes
+    -----
+    Ensure that the treekin executable is compatible with the rate file format and the command-line flags in use.
+    """
 
     treekin_args = [
         treekin_executable,
@@ -791,6 +820,3 @@ if __name__ == "__main__":
         x_lim=args.plot_x_lim,
         y_lim=args.plot_y_lim,
     )
-
-# TODO: fix dissocated states in rates computation (add state)
-# python3 masterequation.py -s /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/states.csv -i 36 -r /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/rates.csv -o /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/summary.csv -f /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/summary.pdf
