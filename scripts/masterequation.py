@@ -180,9 +180,9 @@ def treekin_rates_from_RRIkinDP_states(
     number_of_states = len(states) + len(
         absorbing_states
     )
-    if dissociation_at is not "None":
+    if dissociation_at is not None:
         number_of_states += 1
-    if absorbing_dissociated_state is not "None":
+    if absorbing_dissociated_state is not None:
         number_of_states += 1
 
     # build rate matrix
@@ -229,7 +229,7 @@ def treekin_rates_from_RRIkinDP_states(
                 row.append(0.0)
 
         if (
-            (dissociation_at is not "None")
+            (dissociation_at is not None)
             and current_j - current_i
             < dissociation_at
         ):
@@ -247,7 +247,7 @@ def treekin_rates_from_RRIkinDP_states(
                     min_rate=MIN_RATE,
                 )
             )
-        elif dissociation_at is not "None":
+        elif dissociation_at is not None:
             row.append(0.0)
 
         if k in absorbing_states:
@@ -276,7 +276,7 @@ def treekin_rates_from_RRIkinDP_states(
 
     if absorbing_dissociated_state:
         row = [0.0] * (len(states) + 1)
-        if dissociation_at is not "None":
+        if dissociation_at is not None:
             row.append(
                 check_rate(
                     get_rate(
@@ -305,7 +305,7 @@ def treekin_rates_from_RRIkinDP_states(
         matrix.append(row)
 
     # add rate entries for a dissociated state
-    if dissociation_at is not "None":
+    if dissociation_at is not None:
         states.append(
             [DISSOCIATED_STATE_ENERGY, ("d", "d")]
         )
@@ -401,7 +401,7 @@ def treekin_rates_from_RRIkinDP_states(
         out.close()
 
     # save state names
-    if state_names_file == None:
+    if state_names_file is None:
         state_names_file = rate_file + ".json"
     state_names = [
         f"{state[1][0]}:{state[1][1]}"
@@ -743,7 +743,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--plot_x_lim",
         help="Plot range on x-axis as a tuple. (None for automatic limits).",
-        type=lambda x: tuple(map(lambda v: None if v == "None" else float(v), x.split())),
+        type=lambda x: tuple(map(lambda v: None if v == None else float(v), x.split())),
         default=(None, None),
     )
     parser.add_argument(
@@ -792,3 +792,5 @@ if __name__ == "__main__":
         y_lim=args.plot_y_lim,
     )
 
+# TODO: fix dissocated states in rates computation (add state)
+# python3 masterequation.py -s /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/states.csv -i 36 -r /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/rates.csv -o /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/summary.csv -f /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/summary.pdf
