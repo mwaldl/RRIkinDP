@@ -510,20 +510,6 @@ def plot_treekin(
     """
     # read treekin output file
     if state_names is not None:
-        print(len(state_names))
-        print(state_names)
-
-
-        df = pd.read_csv(
-            treekin_output,
-            index_col=0,
-            header=None,
-            #names=state_names + ["nan"],
-            sep=" ",
-            comment="#",
-        )
-        print(df.head())
-
         df = pd.read_csv(
             treekin_output,
             index_col=0,
@@ -640,12 +626,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-r", "--rates",
-        help="Path to save computed rates file, formatted for treekin.",
+        help="Path to save generated rates file , formatted for treekin.",
         type=str,
         required=True,
     )
     parser.add_argument(
-        "-o", "--out",
+        "-p", "--probs",
         help="Path to save treekin's state probabilities output.",
         type=str,
         required=True,
@@ -711,21 +697,11 @@ if __name__ == "__main__":
         default="treekin",
     )
     parser.add_argument(
-        "--binary",
+        "--binary_rate_file",
         help="Output rate file in binary format for higher precision. (True/False).",
         action="store_true",
     )
-    parser.add_argument(
-        "--write_treekin_output_files",
-        help="Save treekin output file to specified path. (True/False).",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--treekin_output_file",
-        help="Path to save the raw treekin output. Required if '--write_treekin_output_files' is set.",
-        type=str,
-        default=None,
-    )
+
     parser.add_argument(
         "--treekin_verbose",
         help="Print additional details from treekin's execution. (True/False).",
@@ -739,13 +715,14 @@ if __name__ == "__main__":
         type=str,
         default=None,
     )
+
     parser.add_argument(
-        "--labels",
-        help="Display labels for each state in the plot. (True/False).",
-        action="store_true",
+        "--plot_no_labels",
+        help="Display labels for each state in the plot. (False/True).",
+        action="store_false",
     )
     parser.add_argument(
-        "--label_cutoff_fraction",
+        "--plot_label_cutoff",
         help="Minimum population fraction required to label a state in the plot.",
         type=float,
         default=0.1,
@@ -757,13 +734,13 @@ if __name__ == "__main__":
         default=(7, 4),
     )
     parser.add_argument(
-        "--x_lim",
+        "--plot_x_lim",
         help="Plot range on x-axis as a tuple. (None for automatic limits).",
         type=lambda x: tuple(map(lambda v: None if v == "None" else float(v), x.split())),
         default=(None, None),
     )
     parser.add_argument(
-        "--y_lim",
+        "--plot_y_lim",
         help="Plot range on y-axis as a tuple (default: -0.05, 1.05).",
         type=lambda x: tuple(map(float, x.split())),
         default=(-0.05, 1.05),
@@ -772,20 +749,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Generate rate matrix
-    '''
-    def treekin_rates_from_RRIkinDP_states(
-        states_file,
-        rate_file,
-        energy_type="E",
-        absorbing_states=[],
-        absorbin_full_interaction=False,
-        dissociation_at=None,
-        absorbing_dissociated_state=False,
-        energy_penalty_absorbing_state=19,
-        binary=True,
-        state_names_file=None,
-    )
-    '''
     matrix, state_names = treekin_rates_from_RRIkinDP_states(
         states_file=args.states,
         rate_file=args.rates,
@@ -795,7 +758,7 @@ if __name__ == "__main__":
         dissociation_at=args.dissociation_at,
         absorbing_dissociated_state=args.absorbing_dissociated_state,
         energy_penalty_absorbing_state=args.energy_penalty_absorbing_state,
-        binary=args.binary,
+        binary=args.binary_rate_file,
         state_names_file=args.state_names_file,
     )
 
@@ -803,23 +766,22 @@ if __name__ == "__main__":
     run_treekin(
         rate_file=args.rates,
         start_state=args.initial,
-        binary=args.binary,
+        binary=args.binary_rate_file,
         treekin_executable=args.treekin_executable,
-        write_treekin_output_files=args.write_treekin_output_files,
-        treekin_output_file=args.treekin_output_file,
+        write_treekin_output_files=True,
+        treekin_output_file=args.probs,
         verbose=args.treekin_verbose,
     )
 
     # Plot state probabilities
     plot_treekin(
-        treekin_output=args.out,
+        treekin_output=args.probs,
         treekin_plot=args.figure,
         state_names=state_names,
-        labels=args.labels,
-        label_cutoff_fraction=args.label_cutoff_fraction,
+        labels=args.plot_no_labels,
+        label_cutoff_fraction=args.plot_label_cutoff,
         figsize=args.figsize,
-        x_lim=args.x_lim,
-        y_lim=args.y_lim,
+        x_lim=args.plot_x_lim,
+        y_lim=args.plot_y_lim,
     )
 
-# python3 masterequation.py -s /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/states.csv -i 36 -r /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/rates.csv -o /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/summary.csv -f /home/maria/Work/Projects/RRI/RRIkinDP/examples/b1737_ChiX/RRIkinDP/summary.pdf
