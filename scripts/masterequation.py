@@ -8,14 +8,10 @@ import matplotlib.pyplot as plt
 import seaborn as sn
 import json
 
-R = 1.98720425864083 * math.pow(
-    10, -3
-)  # gas contant in dagcal⋅K−1⋅mol−1
+R = 1.98720425864083 * math.pow(10, -3)  # gas contant in dagcal⋅K−1⋅mol−1
 T = 273.15  # 0 Celsius in K
 MIN_RATE = 10 ** (-14)  # TODO: unit
-DISSOCIATED_STATE_ENERGY = (
-    0  # in dagcal⋅K−1⋅mol−1
-)
+DISSOCIATED_STATE_ENERGY = 0  # in dagcal⋅K−1⋅mol−1
 
 
 def format_rates(rate):
@@ -447,15 +443,14 @@ def treekin_rates_from_RRIkinDP_states(
             out.write("\n")
         out.close()
 
-    # save state names
-    if state_names_file is None:
-        state_names_file = rate_file + ".json"
+    # generate and save state names
     state_names = [
         f"{state[1][0]}:{state[1][1]}"
         for state in states
     ]
-    with open(state_names_file, "w") as json_file:
-        json.dump(state_names, json_file)
+    if state_names_file is not None:
+        with open(state_names_file, "w") as json_file:
+            json.dump(state_names, json_file)
 
     return matrix, state_names
 
@@ -495,9 +490,6 @@ def run_treekin(
     None
         Executes treekin and saves its output if specified.
 
-    Notes
-    -----
-    Ensure that the treekin executable is compatible with the rate file format and the command-line flags in use.
     """
 
     treekin_args = [
@@ -547,7 +539,157 @@ def run_treekin(
         print(stderr_data)
 
 
-# TODO: get features from treekin output
+# read state names from json file
+def state_names_from_json(json_file):
+    """Return content of a json file."""
+    with open(json_file) as f:
+        state_names = json.load(f)
+    return state_names
+
+# get name of full interaction state from states_names
+def get_full_interaction_state_name(state_names):
+    """Get full interaction name via get max interaction base pair index."""
+    max_bp = max([ int(state.split(':')[-1]) for state in state_names if state.split(':')[-1].isdigit() ])
+    return f"0:{max_bp}"
+
+# get kinetic features from treekin output
+def get_treekin_features(
+    treekin_out_file,
+    state_names, 
+    target_states = [], 
+    features_json=None,
+    eval_full_interaction=False,
+    eval_dissociated_state=False,
+    ):
+    """
+    Extract kinetic features from the Treekin output, including the times to reach specific population thresholds and state populations at key time points.
+
+    Parameters
+    ----------
+    treekin_out_file : str
+        Path to the Treekin output file containing population data for each state over time.
+    state_names : list of str
+        List of state IDs in the Treekin output file. Used to identify columns in the output file.
+    target_states : list of str, optional
+        List of states (identified by name) to evaluate. Defaults to an empty list, which evaluates no specific states.
+    features_json : str or None, optional
+        Path to save the resulting features dictionary in JSON format. If None, no JSON file is saved.
+    eval_full_interaction : bool, optional
+        If True, includes the state representing the full interaction for analysis. Default is False.
+    eval_dissociated_state : bool, optional
+        If True, includes the dissociated state for evaluation. Default is False.
+
+    Returns
+    -------
+    dict
+        A dictionary where each key corresponds to a feature name (e.g., `state_t99`, `state_p1E10`)
+        for each evaluated state. Values represent time points or population fractions for each feature.
+
+    Notes
+    -----
+    - The function identifies specific time points when the population for each state reaches 50% and 99% (`_t50` and `_t99`).
+    - Population fractions at fixed time points are also extracted (`_p1E10`, `_p1E5`, etc.).
+    - If `features_json` is provided, results are saved as a JSON file.
+    
+    Example
+    -------
+    ```
+    features = get_treekin_features(
+        "output_treekin.txt",
+        state_names=["state_0", "state_1", "d:d", "f:f"],
+        target_states=["state_0", "d:d"],
+        features_json="features.json",
+        eval_full_interaction=True,
+        eval_dissociated_state=True
+    )
+    ```
+
+    Todo
+    ----
+    - Make time points and population fractions into parameters.
+    """
+
+    df = pd.read_csv(
+        treekin_out_file,
+        # index_col=0,
+        header=None,
+        names=["time"] + state_names + ["empty"],
+        sep=" ",
+        comment="#",
+    )
+
+
+    if eval_dissociated_state:
+        target_states.append('d:d')
+        if 'a:d' in state_names:
+            target_states.append('a:d')
+
+    if eval_full_interaction:
+        target_states.append('f:f')
+        full_state_name = get_full_interaction_state_name(state_names)
+        df['f:f'] = df[full_state_name]
+        if f'a:{full_state_name}' in state_names:
+            target_states.append('a:f')
+            df['a:f'] = df[f'a:{full_state_name}']
+    
+    target_states = list(set(target_states))
+
+    times = df["time"].to_list()
+
+    data_dict= {}
+    for state in target_states:
+        # if state does not exist return nan
+        if state not in df.columns:
+            data_dict[f"{state}_t99"] = 'nan'
+            data_dict[f"{state}_t50"] = 'nan'
+            data_dict[f"{state}_p1E10"]= 'nan'
+            data_dict[f"{state}_p1E5"]= 'nan'
+            data_dict[f"{state}_p1E3"]= 'nan'
+            data_dict[f"{state}_p1E2"]= 'nan'
+            data_dict[f"{state}_p1E1"]= 'nan'
+            continue
+
+        # get probability of state per simulation time step
+        probs = df[state].to_list()
+
+        # get time point at which >= 99 percent of population are in the state the first time
+        if probs[-1] < 0.99:
+            data_dict[f"{state}_t99"] = 'nan'
+        else:
+            step_99_absorbed = next(
+                x for x, val in enumerate(probs) if val > 0.99
+            )
+            data_dict[f"{state}_t99"] = times[step_99_absorbed]
+
+        # get time point at which >= 50 percent of population are in the state the first time
+        if probs[-1] < 0.50:
+            data_dict[f"{state}_t50"] = 'nan'
+        else:
+            step_50_absorbed = next(
+                x for x, val in enumerate(probs) if val > 0.50
+            )
+            data_dict[f"{state}_t50"] = times[step_50_absorbed]
+
+        # get the population fraction (state probability) at the given time points
+        step_1E10 = next(x for x, val in enumerate(times) if val >= 10000000000)
+        step_1E5 = next(x for x, val in enumerate(times) if val > 100000)
+        step_1E3 = next(x for x, val in enumerate(times) if val > 1000)
+        step_1E2 = next(x for x, val in enumerate(times) if val > 100)
+        step_1E1 = next(x for x, val in enumerate(times) if val > 10)
+        data_dict[f"{state}_p1E10"]= probs[step_1E10]
+        data_dict[f"{state}_p1E5"]= probs[step_1E5]
+        data_dict[f"{state}_p1E3"]= probs[step_1E3]
+        data_dict[f"{state}_p1E2"]= probs[step_1E2]
+        data_dict[f"{state}_p1E1"]= probs[step_1E1]
+
+
+    # save features
+    if features_json is not None:
+        with open(features_json, "w") as json_file:
+            json.dump(data_dict, json_file)
+
+    return data_dict
+
 
 
 def plot_treekin(
@@ -626,7 +768,7 @@ def plot_treekin(
     )
     ```
     """
-    
+
     # read treekin output file
     if state_names is not None:
         df = pd.read_csv(
@@ -768,6 +910,12 @@ if __name__ == "__main__":
         type=str,
         required=True,
     )
+    parser.add_argument(
+        "-o", "--output_summary",
+        help="Path to save the kinetic features to (json).",
+        type=str,
+        required=True,
+    )
 
     # Rate calculation settings
     parser.add_argument(
@@ -776,14 +924,6 @@ if __name__ == "__main__":
         type=str,
         default="E",
     )
-    '''
-    parser.add_argument(
-        "--min_rate",
-        help="Minimum allowed rate value; rates below this threshold will raise a warning.",
-        type=float,
-        default=1e-14,
-    )
-    '''
 
     # Absorbing state settings
     parser.add_argument(
@@ -815,6 +955,14 @@ if __name__ == "__main__":
         default=19,
     )
 
+    # State names output
+    parser.add_argument(
+        "--state_names_file",
+        help="Path to save JSON file with state names. Defaults to <rate_file>.json.",
+        type=str,
+        default=None,
+    )
+
     # Treekin solver options
     parser.add_argument(
         "--treekin_executable",
@@ -827,21 +975,21 @@ if __name__ == "__main__":
         help="Output rate file in binary format for higher precision. (True/False).",
         action="store_true",
     )
-
     parser.add_argument(
         "--treekin_verbose",
         help="Print additional details from treekin's execution. (True/False).",
         action="store_true",
     )
 
-    # Plotting options
+    # Summary settings
     parser.add_argument(
-        "--state_names_file",
-        help="Path to save JSON file with state names. Defaults to <rate_file>.json.",
-        type=str,
-        default=None,
+        "--target_states",
+        help="Additional states that should be included in the kinetic features summary, in addition to the full interaction and dissaociated state. Example: '0:3,6:12'.",
+        type=lambda x: list(map(int, x.split(","))),
+        default=[],
     )
 
+    # Plotting options
     parser.add_argument(
         "--plot_no_labels",
         help="Display labels for each state in the plot. (False/True).",
@@ -897,6 +1045,16 @@ if __name__ == "__main__":
         write_treekin_output_files=True,
         treekin_output_file=args.probs,
         verbose=args.treekin_verbose,
+    )
+
+    # Summarize dynamic features
+    features = get_treekin_features(
+        treekin_out_file=args.probs,
+        state_names = state_names,
+        target_states = args.target_states,
+        features_json = args.output_summary,
+        eval_full_interaction=True,
+        eval_dissociated_state=True,
     )
 
     # Plot state probabilities
