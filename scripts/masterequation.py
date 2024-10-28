@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 import seaborn as sn
 import json
 
-R = 1.98720425864083 * math.pow(10, -3)  # gas contant in dagcal⋅K−1⋅mol−1
+#R = 1.98720425864083 * math.pow(10, -1)  # gas contant in dagcal⋅K−1⋅mol−1
+R = 1.98720425864083 * math.pow(10, -3)  # gas contant in kcal⋅K−1⋅mol−1
 T = 273.15  # 0 Celsius in K
-MIN_RATE = 10 ** (-14)  # TODO: unit
+MIN_RATE = 10 ** (-14)
 DISSOCIATED_STATE_ENERGY = 0  # in dagcal⋅K−1⋅mol−1
 
 
@@ -181,8 +182,7 @@ def treekin_rates_from_RRIkinDP_states(
                 data = line.strip().split("\t")
                 states.append(
                     [
-                        float(data[index_e])
-                        / 100,
+                        float(data[index_e])/100,
                         (
                             int(data[index_i]),
                             int(data[index_j]),
@@ -195,8 +195,7 @@ def treekin_rates_from_RRIkinDP_states(
                         int(data[index_j]),
                     )
                 ] = {
-                    "energy": float(data[index_e])
-                    / 100,
+                    "energy": float(data[index_e])/100,
                     "index": i - 1,
                 }
                 if (
@@ -917,14 +916,6 @@ if __name__ == "__main__":
         required=True,
     )
 
-    # Rate calculation settings
-    parser.add_argument(
-        "--energy_type",
-        help="Specifies the energy column to use from the states file (e.g., 'E', 'ED1').",
-        type=str,
-        default="E",
-    )
-
     # Absorbing state settings
     parser.add_argument(
         "--absorbing_states",
@@ -1026,7 +1017,6 @@ if __name__ == "__main__":
     matrix, state_names = treekin_rates_from_RRIkinDP_states(
         states_file=args.states,
         rate_file=args.rates,
-        energy_type=args.energy_type,
         absorbing_states=args.absorbing_states,
         absorbin_full_interaction=args.absorbing_full_interaction,
         dissociation_at=args.dissociation_at,
