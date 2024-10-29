@@ -66,7 +66,7 @@ def two2oneD(k, l, interaction_length):
     return int(i)-1 # -1 to get zero based index
 
 
-def treekin_rates_from_RRIkinDP_states(
+def generate_treekin_rates_file(
     states_file,
     rate_file,
     energy_type="E",
@@ -134,6 +134,9 @@ def treekin_rates_from_RRIkinDP_states(
       the output unusable. For long simulations, consider using high-precision Treekin
       settings (`--mlapack-method`).
 
+    - the rate files first contains all regular states, than putative dissociated, absorbing
+      dissociated, general absorbing states (including full interaction).
+
     Examples
     --------
     ```
@@ -149,6 +152,12 @@ def treekin_rates_from_RRIkinDP_states(
         binary=False
     )
     ```
+
+    Todo
+    ----
+    - Modularize.
+    - Current version avoids some dependencies. As eg pandas is anyway used in evaluation
+      scripts, it might also be used here.
     """
 
     # Warning on absorbing state rates
@@ -222,6 +231,7 @@ def treekin_rates_from_RRIkinDP_states(
             ]["index"]
         )
     absorbing_states = list(set(absorbing_states))
+    absorbing_states.sort()
 
     # count states
     number_of_states = len(states) + len(
@@ -229,11 +239,15 @@ def treekin_rates_from_RRIkinDP_states(
     )
     if dissociation_at is not None:
         number_of_states += 1
-    if absorbing_dissociated_state is not None:
-        number_of_states += 1
+        if absorbing_dissociated_state is not None:
+            number_of_states += 1
+
+    print(f'number of states {number_of_states}')
 
     # build rate matrix
     matrix = []
+
+    # add rows for each RRIkinDP state
     for k in range(len(states)):
         row = [0.0] * (len(states))
 
@@ -260,47 +274,30 @@ def treekin_rates_from_RRIkinDP_states(
                 min_rate=MIN_RATE,
             )
 
-        if absorbing_dissociated_state:
-            if current_j - current_i == 0:
-                row.append(
-                    check_rate(
-                        get_rate(
-                            energies[k],
-                            DISSOCIATED_STATE_ENERGY,
-                        ),
-                        (k, "dissociated-state"),
-                        min_rate=MIN_RATE,
-                    )
-                )
-            else:
-                row.append(0.0)
+        ## add column entries for dissociated state
+        if dissociation_at is not None:
+            col_entry = 0.0
+            if current_j - current_i < dissociation_at:
+                col_entry = check_rate(
+                                get_rate(
+                                    energies[k],
+                                    DISSOCIATED_STATE_ENERGY,
+                                ),
+                                (k, "dissociated-state"),
+                                min_rate=MIN_RATE,
+                            )
+            row.append(col_entry)
 
-        if (
-            (dissociation_at is not None)
-            and current_j - current_i
-            < dissociation_at
-        ):
-            row.append(
-                check_rate(
-                    get_rate(
-                        energies[k],
-                        energies[k]
-                        - energy_penalty_absorbing_state,
-                    ),
-                    (
-                        k,
-                        "dissociated-absorbing-state",
-                    ),
-                    min_rate=MIN_RATE,
-                )
-            )
-        elif dissociation_at is not None:
+        ## add dissociated absorbing state column entry
+        if absorbing_dissociated_state and dissociation_at is not None:
             row.append(0.0)
 
-        if k in absorbing_states:
-            rates_to_absorbing = [0.0] * len(
+        ## add absorbing states column entries
+        rates_to_absorbing = [0.0] * len(
                 absorbing_states
-            )
+        )
+        if k in absorbing_states:
+
             index_absorbing = (
                 absorbing_states.index(k)
             )
@@ -315,15 +312,30 @@ def treekin_rates_from_RRIkinDP_states(
                 (k, "absorbing-state"),
                 min_rate=MIN_RATE,
             )
-            row += rates_to_absorbing
-        else:
-            row += [0.0] * len(absorbing_states)
+        row += rates_to_absorbing
 
         matrix.append(row)
 
-    if absorbing_dissociated_state:
-        row = [0.0] * (len(states) + 1)
-        if dissociation_at is not None:
+    # add rate row for dissociated state
+    if dissociation_at is not None:
+        states.append(
+            [DISSOCIATED_STATE_ENERGY, ("d", "d")]
+        )
+        row = [0.0] * (len(states))
+        for i in range(interaction_length):
+            for j in range(i, i+dissociation_at):
+                if j >= interaction_length:
+                    continue
+                k = states_dict[(i, j)]["index"]
+                row[k] = check_rate(
+                    get_rate(
+                        DISSOCIATED_STATE_ENERGY,
+                        states[k][0],
+                    ),
+                    ("dissociated-state", k),
+                    min_rate=MIN_RATE,
+                )
+        if absorbing_dissociated_state:
             row.append(
                 check_rate(
                     get_rate(
@@ -338,52 +350,22 @@ def treekin_rates_from_RRIkinDP_states(
                     min_rate=MIN_RATE,
                 )
             )
+
         row += [0.0] * len(absorbing_states)
-        for i in range(interaction_length):
-            k = states_dict[(i, i)]["index"]
-            row[k] = check_rate(
-                get_rate(
-                    DISSOCIATED_STATE_ENERGY,
-                    states[k][0],
-                ),
-                ("dissociated-state", k),
-                min_rate=MIN_RATE,
-            )
         matrix.append(row)
 
-    # add rate entries for a dissociated state
+    # add rate row for absorbing dissociated state
     if dissociation_at is not None:
-        states.append(
-            [DISSOCIATED_STATE_ENERGY, ("d", "d")]
-        )
-        row = [0.0] * number_of_states
-        for i in range(interaction_length):
-            for l in range(dissociation_at):
-                if i + l < interaction_length:
-                    k = states_dict[(i, i + l)][
-                        "index"
-                    ]
-                    row[k] = check_rate(
-                        get_rate(
-                            states[k][0]
-                            - energy_penalty_absorbing_state,
-                            states[k][0],
-                        ),
-                        (
-                            "dissociated-absorbing-state",
-                            k,
-                        ),
-                        min_rate=MIN_RATE,
-                    )
         if absorbing_dissociated_state:
-            states.append(
+           states.append(
                 [
                     DISSOCIATED_STATE_ENERGY
                     - energy_penalty_absorbing_state,
                     ("a", "d"),
                 ]
-            )
-            row[len(states)-1] = check_rate(
+            )   
+        row = [0.0] * number_of_states
+        row[len(states)-2] = check_rate(
                 get_rate(
                     DISSOCIATED_STATE_ENERGY
                     - energy_penalty_absorbing_state,
@@ -397,7 +379,8 @@ def treekin_rates_from_RRIkinDP_states(
             )
         matrix.append(row)
 
-    # add rate entries for absorbing states (except for absorbing dissociated state)
+
+    # add rate rows for absorbing states (except for absorbing dissociated state)
     for a in absorbing_states:
         states.append(
             [
@@ -1022,7 +1005,7 @@ if __name__ == "__main__":
 
 
     # Generate rate matrix
-    matrix, state_names = treekin_rates_from_RRIkinDP_states(
+    matrix, state_names = generate_treekin_rates_file(
         states_file=args.states,
         rate_file=args.rates,
         absorbing_states=args.absorbing_states,
