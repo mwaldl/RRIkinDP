@@ -7,6 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sn
 import json
+import struct
 
 #R = 1.98720425864083 * math.pow(10, -1)  # gas contant in dagcal⋅K−1⋅mol−1
 R = 1.98720425864083 * math.pow(10, -3)  # gas contant in kcal⋅K−1⋅mol−1
@@ -62,7 +63,7 @@ def two2oneD(k, l, interaction_length):
     i -= (
         interaction_length - l - 1
     )  # minus states (k,l:interaction_length)
-    return i
+    return int(i)-1 # -1 to get zero based index
 
 
 def treekin_rates_from_RRIkinDP_states(
@@ -210,6 +211,10 @@ def treekin_rates_from_RRIkinDP_states(
     energies = [state[0] for state in states]
 
     # set up absorbing state
+    ## convert to index based
+    absorbing_states = [states_dict[state[0], state[1]]["index"] for state in absorbing_states]
+
+    ## add absorbing full interaction
     if absorbin_full_interaction:
         absorbing_states.append(
             states_dict[
@@ -711,7 +716,7 @@ def plot_treekin(
         the population data for each state over time.
     treekin_plot : str
         Output path for the saved plot file. The file format is inferred from the
-        file extension, e.g., '.png', '.pdf', '.svg', etc.
+        file extension, e.g., '.png', '.pdf', etc.
     state_names : list of str or None, optional
         List of names for each state, to be used as labels in the plot. If None,
         default numbering will be used. State names should correspond to columns
@@ -887,8 +892,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-i", "--initial",
-        help="Index of the initial state in the interaction network.",
-        type=int,
+        help="Initial state with 100% population in the simulation defined by index of first and last base pair e.g., '-i 2:4' (zero based indices).",
+        type=lambda x: tuple(map(int, x.split(':'))),
         required=True,
     )
     parser.add_argument(
@@ -919,8 +924,8 @@ if __name__ == "__main__":
     # Absorbing state settings
     parser.add_argument(
         "--absorbing_states",
-        help="List of indices representing states to which absorbing states should be attached. Example: '12,1,24'.",
-        type=lambda x: list(map(int, x.split(","))),
+        help="List of absorbing states in base pair format, i.e. represented by the zero based index of there first and last base pair. Example: '14:17 5:7, 0:6'.",
+        type=lambda s: [tuple(map(int, state.split(":"))) for state in s.split()],
         default=[],
     )
     parser.add_argument(
@@ -1013,6 +1018,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+
+
+
     # Generate rate matrix
     matrix, state_names = treekin_rates_from_RRIkinDP_states(
         states_file=args.states,
@@ -1026,10 +1034,19 @@ if __name__ == "__main__":
         state_names_file=args.state_names_file,
     )
 
+    # Preprocess treekin input
+    ## interaction length
+    interaction_length = get_interaction_length(args.states)
+    print(interaction_length)
+    ## index of initial state
+    initial_k, initial_l = args.initial
+    initial_state_index = two2oneD(initial_k, initial_l, interaction_length)
+    print(initial_state_index)
+
     # Run treekin
     run_treekin(
         rate_file=args.rates,
-        start_state=args.initial,
+        start_state=initial_state_index,
         binary=args.binary_rate_file,
         treekin_executable=args.treekin_executable,
         write_treekin_output_files=True,
