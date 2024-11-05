@@ -242,8 +242,6 @@ def generate_treekin_rates_file(
         if absorbing_dissociated_state is not None:
             number_of_states += 1
 
-    print(f'number of states {number_of_states}')
-
     # build rate matrix
     matrix = []
 
@@ -688,6 +686,7 @@ def plot_treekin(
     figsize=(7, 4),
     x_lim=(None, None),
     y_lim=(-0.05, 1.05),
+    title = None,
 ):
     """
     Plot the Treekin output, showing state probabilities over time.
@@ -781,7 +780,7 @@ def plot_treekin(
     ]  # remove empty column (tailing spaces in input)
 
     # set figure size
-    f, ax = plt.subplots(figsize=figsize)
+    f, ax = plt.subplots(figsize=figsize, layout="constrained")
 
     # set axis labels
     ax.set_ylabel("Population")
@@ -825,22 +824,13 @@ def plot_treekin(
         # set label position at max_population
         #marker_y = max_population
         marker_x = max_population_time.iloc[0]
-        print(col)
-        print(marker_x)
 
         # reset marker y  coordinates if outside or close to y-limits
-        print('min max', min_x_label, max_x_label)
         if marker_x < min_x_label:
-            print('min')
             marker_x = next(t for t in df.index.to_list() if t > min_x_label)
         elif marker_x > max_x_label:
-            print('max')
             marker_x = next(t for t in reversed(df.index.to_list()) if t < max_x_label)
-        print(marker_x)
         marker_y = df.at[marker_x, col]
-        print(marker_y)
-        print('next')
-        
 
         # set marker text and marker edge color 
         edge_col = "white"
@@ -885,6 +875,10 @@ def plot_treekin(
     # set plot range
     ax.set_xlim(x_lim[0], x_lim[1])
     ax.set_ylim(y_lim[0], y_lim[1])
+
+    # set title
+    if title is not None:
+        ax.set_title(title)
 
     # save figure
     f.savefig(treekin_plot, bbox_inches="tight")
@@ -1021,7 +1015,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--plot_x_lim",
-        help="Plot range on x-axis as a tuple. (None for automatic limits).",
+        help="Plot range on x-axis as a tuple. (default: None, None).",
         type=lambda x: tuple(map(lambda v: None if v == None else float(v), x.split())),
         default=(None, None),
     )
@@ -1030,6 +1024,13 @@ if __name__ == "__main__":
         help="Plot range on y-axis as a tuple (default: -0.05 1.05).",
         type=lambda x: tuple(map(float, x.split())),
         default=(-0.05, 1.05),
+    )
+
+    parser.add_argument(
+        "--plot_title",
+        help="Title to be shown in popluation probability plot (default: None).",
+        type=str,
+        default=None,
     )
 
     args = parser.parse_args()
@@ -1053,11 +1054,9 @@ if __name__ == "__main__":
     # Preprocess treekin input
     ## interaction length
     interaction_length = get_interaction_length(args.states)
-    print(interaction_length)
     ## index of initial state
     initial_k, initial_l = args.initial
     initial_state_index = two2oneD(initial_k, initial_l, interaction_length)
-    print(initial_state_index)
 
     # Run treekin
     run_treekin(
@@ -1090,4 +1089,5 @@ if __name__ == "__main__":
         figsize=args.figsize,
         x_lim=args.plot_x_lim,
         y_lim=args.plot_y_lim,
+        title=args.plot_title,
     )
