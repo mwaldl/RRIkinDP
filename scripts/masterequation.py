@@ -787,6 +787,19 @@ def plot_treekin(
     ax.set_ylabel("Population")
     ax.set_xlabel("Time (a.u.)")
 
+    # set y_lim
+    min_time = df.index.to_list()[0]
+    max_time = df.index.to_list()[-1]
+
+    if x_lim[0] is None:
+        x_lim = (min_time/2, x_lim[1])
+    if x_lim[1] is None:
+        x_lim = (x_lim[0], max_time*2) 
+    
+    # set min and max label y coordinate:
+    min_x_label = x_lim[0]*2
+    max_x_label = x_lim[1]/2
+
     # call plot function for each state
     for col in df.columns:
 
@@ -809,10 +822,30 @@ def plot_treekin(
             continue
         max_population_time = df[[col]].idxmax()
 
+        # set label position at max_population
+        #marker_y = max_population
+        marker_x = max_population_time.iloc[0]
+        print(col)
+        print(marker_x)
+
+        # reset marker y  coordinates if outside or close to y-limits
+        print('min max', min_x_label, max_x_label)
+        if marker_x < min_x_label:
+            print('min')
+            marker_x = next(t for t in df.index.to_list() if t > min_x_label)
+        elif marker_x > max_x_label:
+            print('max')
+            marker_x = next(t for t in reversed(df.index.to_list()) if t < max_x_label)
+        print(marker_x)
+        marker_y = df.at[marker_x, col]
+        print(marker_y)
+        print('next')
+        
+
+        # set marker text and marker edge color 
         edge_col = "white"
         text = col
-
-        # mark absorbing states with grey marker edge and remove leading "a:" in state name
+        ## mark absorbing states with grey marker edge and remove leading "a:" in state name
         if col.startswith("a"):
             edge_col = "grey"
             text = ":".join(col.split(":")[1:])
@@ -826,8 +859,8 @@ def plot_treekin(
 
         # plot state label background
         plt.plot(
-            max_population_time,
-            max_population,
+            marker_x,
+            marker_y,
             marker="o",
             color="white",
             markeredgecolor=edge_col,
@@ -837,8 +870,8 @@ def plot_treekin(
 
         # plot state label text
         plt.plot(
-            max_population_time,
-            max_population,
+            marker_x,
+            marker_y,
             marker="$%s$" % text,
             color=color,
             markersize=text_markersize,
@@ -994,7 +1027,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--plot_y_lim",
-        help="Plot range on y-axis as a tuple (default: -0.05, 1.05).",
+        help="Plot range on y-axis as a tuple (default: -0.05 1.05).",
         type=lambda x: tuple(map(float, x.split())),
         default=(-0.05, 1.05),
     )
