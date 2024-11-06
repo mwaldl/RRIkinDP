@@ -687,6 +687,7 @@ def plot_treekin(
     x_lim=(None, None),
     y_lim=(-0.05, 1.05),
     title = None,
+    enable_tex_fonts = True,
 ):
     """
     Plot the Treekin output, showing state probabilities over time.
@@ -719,6 +720,10 @@ def plot_treekin(
     y_lim : tuple of float, optional
         Plot range on the y-axis, usually set between -0.05 and 1.05 for population
         values between 0 and 1 with a small margin. Default is (-0.05, 1.05).
+    title: string, optional
+        Title to be included into the plot.
+    enable_tex_fonts: bool, optional
+        Wether to load predefined pgf preamble. Default is False.
 
     Returns
     -------
@@ -754,6 +759,27 @@ def plot_treekin(
     )
     ```
     """
+    
+    # set up fonts
+    font_family = 'sans-serif'
+    if enable_tex_fonts:
+        font_family = "serif"
+    font_params = {
+        "font.family": font_family, # use serif/main font for text elements
+        "font.size": 8,
+        "text.usetex": enable_tex_fonts,    # use inline math for ticks
+        "pgf.rcfonts": False,   # don't setup fonts from rc parameters
+        #"pgf.preamble": [
+            #"\\usepackage{units}",  
+            #"\\usepackage{metalogo}",
+            #"\\usepackage{unicode-math}",  # unicode math setup
+            #r"\setmathfont{xits-math.otf}",
+            #r"\setmainfont{DejaVu Serif}", # serif font via preamble
+        #    ]
+    }
+
+    plt.rcParams.update(font_params)
+
 
     # read treekin output file
     if state_names is not None:
@@ -791,13 +817,14 @@ def plot_treekin(
     max_time = df.index.to_list()[-1]
 
     if x_lim[0] is None:
-        x_lim = (min_time/2, x_lim[1])
+        x_lim = (min_time/4, x_lim[1])
     if x_lim[1] is None:
-        x_lim = (x_lim[0], max_time*2) 
+        x_lim = (x_lim[0], max_time*4) 
     
-    # set min and max label y coordinate:
-    min_x_label = x_lim[0]*2
-    max_x_label = x_lim[1]/2
+    # set min and max label x coordinates for markers
+    # Todo: set based on marker size, figsize and x_lim 
+    min_x_label = x_lim[0]*4
+    max_x_label = x_lim[1]/4
 
     # call plot function for each state
     for col in df.columns:
@@ -845,7 +872,7 @@ def plot_treekin(
         if len(text)<4:
             text_markersize = 10
             if len(text)<2:
-                text_markersize = 7
+                text_markersize = 8
 
         # plot state label background
         plt.plot(
