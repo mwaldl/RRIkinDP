@@ -242,8 +242,6 @@ def generate_treekin_rates_file(
         if absorbing_dissociated_state is not None:
             number_of_states += 1
 
-    print(f'number of states {number_of_states}')
-
     # build rate matrix
     matrix = []
 
@@ -688,6 +686,8 @@ def plot_treekin(
     figsize=(7, 4),
     x_lim=(None, None),
     y_lim=(-0.05, 1.05),
+    title = None,
+    enable_tex_fonts = True,
 ):
     """
     Plot the Treekin output, showing state probabilities over time.
@@ -720,6 +720,10 @@ def plot_treekin(
     y_lim : tuple of float, optional
         Plot range on the y-axis, usually set between -0.05 and 1.05 for population
         values between 0 and 1 with a small margin. Default is (-0.05, 1.05).
+    title: string, optional
+        Title to be included into the plot.
+    enable_tex_fonts: bool, optional
+        Wether to load predefined pgf preamble. Default is False. 
 
     Returns
     -------
@@ -740,6 +744,7 @@ def plot_treekin(
       distinct edge color (gray), and state names are derived from `state_names` if provided.
     - **File Format**: The plot's file format is determined by the file extension of
       `treekin_plot`. Ensure the extension matches the desired format (e.g., `.png`, `.pdf`).
+    - **Tex support**: Requires a a working LaTeX installation.
 
     Example
     -------
@@ -755,6 +760,27 @@ def plot_treekin(
     )
     ```
     """
+    
+    # set up fonts
+    font_family = 'sans-serif'
+    if enable_tex_fonts:
+        font_family = "serif"
+    font_params = {
+        "font.family": font_family, # use serif/main font for text elements
+        "font.size": 8,
+        "text.usetex": enable_tex_fonts,    # use inline math for ticks
+        "pgf.rcfonts": False,   # don't setup fonts from rc parameters
+        #"pgf.preamble": [
+            #"\\usepackage{units}",  
+            #"\\usepackage{metalogo}",
+            #"\\usepackage{unicode-math}",  # unicode math setup
+            #r"\setmathfont{xits-math.otf}",
+            #r"\setmainfont{DejaVu Serif}", # serif font via preamble
+        #    ]
+    }
+
+    plt.rcParams.update(font_params)
+
 
     # read treekin output file
     if state_names is not None:
@@ -781,11 +807,25 @@ def plot_treekin(
     ]  # remove empty column (tailing spaces in input)
 
     # set figure size
-    f, ax = plt.subplots(figsize=figsize)
+    f, ax = plt.subplots(figsize=figsize, layout="constrained")
 
     # set axis labels
     ax.set_ylabel("Population")
     ax.set_xlabel("Time (a.u.)")
+
+    # set y_lim
+    min_time = df.index.to_list()[0]
+    max_time = df.index.to_list()[-1]
+
+    if x_lim[0] is None:
+        x_lim = (min_time/4, x_lim[1])
+    if x_lim[1] is None:
+        x_lim = (x_lim[0], max_time*4) 
+    
+    # set min and max label x coordinates for markers
+    # Todo: set based on marker size, figsize and x_lim 
+    min_x_label = x_lim[0]*4
+    max_x_label = x_lim[1]/4
 
     # call plot function for each state
     for col in df.columns:
@@ -809,10 +849,21 @@ def plot_treekin(
             continue
         max_population_time = df[[col]].idxmax()
 
+        # set label position at max_population
+        #marker_y = max_population
+        marker_x = max_population_time.iloc[0]
+
+        # reset marker y  coordinates if outside or close to y-limits
+        if marker_x < min_x_label:
+            marker_x = next(t for t in df.index.to_list() if t > min_x_label)
+        elif marker_x > max_x_label:
+            marker_x = next(t for t in reversed(df.index.to_list()) if t < max_x_label)
+        marker_y = df.at[marker_x, col]
+
+        # set marker text and marker edge color 
         edge_col = "white"
         text = col
-
-        # mark absorbing states with grey marker edge and remove leading "a:" in state name
+        ## mark absorbing states with grey marker edge and remove leading "a:" in state name
         if col.startswith("a"):
             edge_col = "grey"
             text = ":".join(col.split(":")[1:])
@@ -822,12 +873,12 @@ def plot_treekin(
         if len(text)<4:
             text_markersize = 10
             if len(text)<2:
-                text_markersize = 7
+                text_markersize = 8
 
         # plot state label background
         plt.plot(
-            max_population_time,
-            max_population,
+            marker_x,
+            marker_y,
             marker="o",
             color="white",
             markeredgecolor=edge_col,
@@ -837,8 +888,8 @@ def plot_treekin(
 
         # plot state label text
         plt.plot(
-            max_population_time,
-            max_population,
+            marker_x,
+            marker_y,
             marker="$%s$" % text,
             color=color,
             markersize=text_markersize,
@@ -852,6 +903,10 @@ def plot_treekin(
     # set plot range
     ax.set_xlim(x_lim[0], x_lim[1])
     ax.set_ylim(y_lim[0], y_lim[1])
+
+    # set title
+    if title is not None:
+        ax.set_title(title)
 
     # save figure
     f.savefig(treekin_plot, bbox_inches="tight")
@@ -988,15 +1043,22 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--plot_x_lim",
-        help="Plot range on x-axis as a tuple. (None for automatic limits).",
+        help="Plot range on x-axis as a tuple. (default: None, None).",
         type=lambda x: tuple(map(lambda v: None if v == None else float(v), x.split())),
         default=(None, None),
     )
     parser.add_argument(
         "--plot_y_lim",
-        help="Plot range on y-axis as a tuple (default: -0.05, 1.05).",
+        help="Plot range on y-axis as a tuple (default: -0.05 1.05).",
         type=lambda x: tuple(map(float, x.split())),
         default=(-0.05, 1.05),
+    )
+
+    parser.add_argument(
+        "--plot_title",
+        help="Title to be shown in popluation probability plot (default: None).",
+        type=str,
+        default=None,
     )
 
     args = parser.parse_args()
@@ -1020,11 +1082,9 @@ if __name__ == "__main__":
     # Preprocess treekin input
     ## interaction length
     interaction_length = get_interaction_length(args.states)
-    print(interaction_length)
     ## index of initial state
     initial_k, initial_l = args.initial
     initial_state_index = two2oneD(initial_k, initial_l, interaction_length)
-    print(initial_state_index)
 
     # Run treekin
     run_treekin(
@@ -1057,4 +1117,5 @@ if __name__ == "__main__":
         figsize=args.figsize,
         x_lim=args.plot_x_lim,
         y_lim=args.plot_y_lim,
+        title=args.plot_title,
     )
