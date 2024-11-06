@@ -723,7 +723,7 @@ def plot_treekin(
     title: string, optional
         Title to be included into the plot.
     enable_tex_fonts: bool, optional
-        Wether to load predefined pgf preamble. Default is False.
+        Wether to load predefined pgf preamble. Default is False. 
 
     Returns
     -------
@@ -744,6 +744,7 @@ def plot_treekin(
       distinct edge color (gray), and state names are derived from `state_names` if provided.
     - **File Format**: The plot's file format is determined by the file extension of
       `treekin_plot`. Ensure the extension matches the desired format (e.g., `.png`, `.pdf`).
+    - **Tex support**: Requires a a working LaTeX installation.
 
     Example
     -------
