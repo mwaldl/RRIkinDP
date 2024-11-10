@@ -15,6 +15,32 @@ T = 273.15  # 0 Celsius in K
 MIN_RATE = 10 ** (-14)
 DISSOCIATED_STATE_ENERGY = 0  # in dagcal⋅K−1⋅mol−1
 
+class State:
+    def __init__(self, index: int, base_pairs: (int,int), absorbing: bool, energy: float):
+        """Initialize a State by index. Base pairs and name are derived based on interaction length."""
+        self.index = index
+        self.base_pairs = base_pairs
+        self.absorbing = absorbing
+        self.energy = energy
+
+    def is_full_interaction(self, interaction_length):
+        if base_pair[0] == 0 and base_pair[1] == interaction_length-1:
+            return True
+        else:
+            return False
+
+    def name(self,one_based=False):
+        prefix = 's'
+        if self.absorbing:
+            prefix='a'
+        if one_based and type(self.base_pairs[0])==int and type(self.base_pairs[1])==int:
+            return f"{prefix}:{self.base_pairs[0]+1}:{self.base_pairs[1]+1}"
+        else:
+            return f"{prefix}:{self.base_pairs[0]}:{self.base_pairs[1]}"
+
+    def __repr__(self):
+        return f"State(index={self.index}, base_pairs={self.base_pairs}, absorbing={self.absorbing}, energy={self.energy})"
+
 
 def format_rates(rate):
     """Format single rate entry according to rates file format for treekin."""
@@ -77,6 +103,7 @@ def generate_treekin_rates_file(
     energy_penalty_absorbing_state=19,
     binary=True,
     state_names_file=None,
+    one_based_state_names = True,
 ):
     """
     Create a rates input file for Treekin from RRIkinDP states output, enabling RNA-RNA interaction kinetics analysis.
@@ -190,14 +217,16 @@ def generate_treekin_rates_file(
                 index_j = lables.index("l")
             else:
                 data = line.strip().split("\t")
-                states.append(
-                    [
-                        float(data[index_e])/100,
-                        (
+                states.append( 
+                    State(
+                        index=i,
+                        base_pairs=(
                             int(data[index_i]),
                             int(data[index_j]),
                         ),
-                    ]
+                        energy=float(data[index_e])/100,
+                        absorbing=False,
+                    )
                 )
                 states_dict[
                     (
@@ -217,7 +246,7 @@ def generate_treekin_rates_file(
                     )
             i = i + 1
     interaction_length += 1
-    energies = [state[0] for state in states]
+    energies = [state.energy for state in states]
 
     # set up absorbing state
     ## convert to index based
@@ -237,10 +266,16 @@ def generate_treekin_rates_file(
     number_of_states = len(states) + len(
         absorbing_states
     )
+    print('nstates', len(states))
+    print('astates', len(absorbing_states))
+
     if dissociation_at is not None:
         number_of_states += 1
-        if absorbing_dissociated_state is not None:
+        if absorbing_dissociated_state:
             number_of_states += 1
+            print('abs diss')
+
+    print("NO",number_of_states)
 
     # build rate matrix
     matrix = []
@@ -249,8 +284,7 @@ def generate_treekin_rates_file(
     for k in range(len(states)):
         row = [0.0] * (len(states))
 
-        current_i = states[k][1][0]
-        current_j = states[k][1][1]
+        current_i,current_j = states[k].base_pairs
 
         connected_states_ij = [
             (current_i, current_j - 1),
@@ -317,7 +351,12 @@ def generate_treekin_rates_file(
     # add rate row for dissociated state
     if dissociation_at is not None:
         states.append(
-            [DISSOCIATED_STATE_ENERGY, ("d", "d")]
+            State(
+                index=len(states),
+                base_pairs=("d", "d"),
+                energy=DISSOCIATED_STATE_ENERGY,
+                absorbing=False
+                )
         )
         row = [0.0] * (len(states))
         for i in range(interaction_length):
@@ -328,7 +367,7 @@ def generate_treekin_rates_file(
                 row[k] = check_rate(
                     get_rate(
                         DISSOCIATED_STATE_ENERGY,
-                        states[k][0],
+                        states[k].energy,
                     ),
                     ("dissociated-state", k),
                     min_rate=MIN_RATE,
@@ -355,47 +394,47 @@ def generate_treekin_rates_file(
     # add rate row for absorbing dissociated state
     if dissociation_at is not None:
         if absorbing_dissociated_state:
-           states.append(
-                [
-                    DISSOCIATED_STATE_ENERGY
-                    - energy_penalty_absorbing_state,
-                    ("a", "d"),
-                ]
-            )   
-        row = [0.0] * number_of_states
-        row[len(states)-2] = check_rate(
-                get_rate(
-                    DISSOCIATED_STATE_ENERGY
-                    - energy_penalty_absorbing_state,
-                    DISSOCIATED_STATE_ENERGY,
-                ),
-                (
-                    "dissociated-absorbing-state",
-                    "disscociated-state",
-                ),
-                min_rate=MIN_RATE,
+            states.append(
+                State(
+                    index=len(states),
+                    base_pairs=("d", "d"),
+                    energy=DISSOCIATED_STATE_ENERGY - energy_penalty_absorbing_state,
+                    absorbing=True,
+                )
             )
-        matrix.append(row)
+  
+            row = [0.0] * number_of_states
+            row[len(states)-2] = check_rate(
+                    get_rate(
+                        DISSOCIATED_STATE_ENERGY
+                        - energy_penalty_absorbing_state,
+                        DISSOCIATED_STATE_ENERGY,
+                    ),
+                    (
+                        "dissociated-absorbing-state",
+                        "disscociated-state",
+                    ),
+                    min_rate=MIN_RATE,
+                )
+            matrix.append(row)
 
 
     # add rate rows for absorbing states (except for absorbing dissociated state)
     for a in absorbing_states:
         states.append(
-            [
-                states[a][0]
-                - energy_penalty_absorbing_state,
-                (
-                    "a",
-                    f"{states[a][1][0]}:{states[a][1][1]}",
-                ),
-            ]
+            State(
+                index=len(states),
+                base_pairs=states[a].base_pairs,
+                energy=states[a].energy - energy_penalty_absorbing_state,
+                absorbing=True,
+            )
         )
         row = [0.0] * number_of_states
         row[a] = check_rate(
             get_rate(
-                states[a][0]
+                states[a].energy
                 - energy_penalty_absorbing_state,
-                states[a][0],
+                states[a].energy,
             ),
             ("absorbing_state", a),
             min_rate=MIN_RATE,
@@ -430,24 +469,28 @@ def generate_treekin_rates_file(
 
     # generate and save state names
     state_names = [
-        f"{state[1][0]}:{state[1][1]}"
+        state.name(one_based=one_based_state_names)
         for state in states
     ]
     if state_names_file is not None:
         with open(state_names_file, "w") as json_file:
             json.dump(state_names, json_file)
 
-    return matrix, state_names
+    return matrix, states
 
 
 # call treekin
 def run_treekin(
     rate_file,
-    start_state,
+    initial_distribution,
     binary=True,
     treekin_executable="treekin",
     write_treekin_output_files=True,
     treekin_output_file=None,
+    time_increment = 1.02,
+    sim_start_time = 0.1,
+    sim_end_time = "1E10",
+    temperature = 37.0,
     verbose = False,
 ):
     """
@@ -457,8 +500,8 @@ def run_treekin(
     ----------
     rate_file : str
         Path to the rates input file in the specified format (binary or plain text).
-    start_state : int
-        Index of the starting state (0-based) in the interaction network.
+    start_state : list of lists, [[state1, state1_prob], [state2, state2_prob], ...]
+        Initial state distribution.
     binary : bool, optional
         If True, the rates input file is in binary format, which offers higher precision (default is True).
     treekin_executable : str, optional
@@ -467,13 +510,21 @@ def run_treekin(
         If True, writes the treekin output to a file specified by 'treekin_output_file' (default is True).
     treekin_output_file : str or None, optional
         Path to save the raw output from treekin. Required if 'write_treekin_output_files' is True.
+    time_increment: float, optional
+        Time scaling factor for logarithmic time scale (default 1.02).
+    sim_start_time: float, optional
+        Set simulation start time in internal units (default 0.1).
+    sim_end_time: string or float, optional
+        Set simulation stop time in internal units (default 1e+10).
+    temperature: float, optional
+        Set the simulation temperature in Celsius to temp (default 37.0).
     verbose : bool, optional
         If True, prints detailed output and errors from treekin execution (default is False).
 
     Returns
     -------
     None
-        Executes treekin and saves its output if specified.
+        Executes treekin, returns treekin output and saves it to output file if specified.
 
     """
 
@@ -483,12 +534,14 @@ def run_treekin(
         "I",
         "--ratesfile",
         rate_file,
-        "--t8",
-        "1E10",
         "--p0",
-        str(start_state + 1) + "=1.0",
+        " ".join([f"{state.index+1}={probability}" for state, probability in initial_distribution]),
         "--mlapack-method",
-        "DD"
+        "DD",
+        "-T", f"{temperature}",
+        "--tinc", f"{time_increment}",
+        "--t0", f"{sim_start_time}",
+        "--t8", f"{sim_end_time}",
         # "MPFR",  # "LD", "QD",  "DD", "DOUBLE", "GMP", "MPFR", "FLOAT128"
         # "--mlapack-precision",  # necessary if "GMP", "MPFR"
         # "128",
@@ -496,6 +549,7 @@ def run_treekin(
     if binary:
         treekin_args.append("--bin")
 
+    print(treekin_args)
     treekin_process = subprocess.Popen(
         treekin_args,
         # stdin=cat_process.stdout,
@@ -522,6 +576,8 @@ def run_treekin(
 
     if verbose:
         print(stderr_data)
+    
+    return treekin_output
 
 
 # read state names from json file
@@ -535,12 +591,12 @@ def state_names_from_json(json_file):
 def get_full_interaction_state_name(state_names):
     """Get full interaction name via get max interaction base pair index."""
     max_bp = max([ int(state.split(':')[-1]) for state in state_names if state.split(':')[-1].isdigit() ])
-    return f"0:{max_bp}"
+    return f"s:0:{max_bp}"
 
 # get kinetic features from treekin output
 def get_treekin_features(
     treekin_out_file,
-    state_names, 
+    states, 
     target_states = [], 
     features_json=None,
     eval_full_interaction=False,
@@ -553,8 +609,8 @@ def get_treekin_features(
     ----------
     treekin_out_file : str
         Path to the Treekin output file containing population data for each state over time.
-    state_names : list of str
-        List of state IDs in the Treekin output file. Used to identify columns in the output file.
+    states : list of States
+        List of State corresponding to the columns in the Treekin output file.
     target_states : list of str, optional
         List of states (identified by name) to evaluate. Defaults to an empty list, which evaluates no specific states.
     features_json : str or None, optional
@@ -581,8 +637,8 @@ def get_treekin_features(
     ```
     features = get_treekin_features(
         "output_treekin.txt",
-        state_names=["state_0", "state_1", "d:d", "f:f"],
-        target_states=["state_0", "d:d"],
+        state_names=["state_0", "state_1", "a:2:5", a:f:f"],
+        target_states=["state_0", "d:d", "a:2:5"],
         features_json="features.json",
         eval_full_interaction=True,
         eval_dissociated_state=True
@@ -593,6 +649,8 @@ def get_treekin_features(
     ----
     - Make time points and population fractions into parameters.
     """
+
+    state_names = [state.name() for state in states]
 
     df = pd.read_csv(
         treekin_out_file,
@@ -605,17 +663,17 @@ def get_treekin_features(
 
 
     if eval_dissociated_state:
-        target_states.append('d:d')
-        if 'a:d' in state_names:
-            target_states.append('a:d')
+        target_states.append('s:d:d')
+        if 'a:d:d' in state_names:
+            target_states.append('a:d:d')
 
     if eval_full_interaction:
-        target_states.append('f:f')
+        target_states.append('s:f:f')
         full_state_name = get_full_interaction_state_name(state_names)
-        df['f:f'] = df[full_state_name]
+        df['s:f:f'] = df[full_state_name]
         if f'a:{full_state_name}' in state_names:
-            target_states.append('a:f')
-            df['a:f'] = df[f'a:{full_state_name}']
+            target_states.append('a:f:f')
+            df['a:f:f'] = df[f'a:{full_state_name}']
     
     target_states = list(set(target_states))
 
@@ -680,7 +738,7 @@ def get_treekin_features(
 def plot_treekin(
     treekin_output,
     treekin_plot,
-    state_names=None,
+    states=None,
     labels=True,
     label_cutoff_fraction=0.1,
     figsize=(7, 4),
@@ -688,6 +746,7 @@ def plot_treekin(
     y_lim=(-0.05, 1.05),
     title = None,
     enable_tex_fonts = True,
+    one_based_state_names = True
 ):
     """
     Plot the Treekin output, showing state probabilities over time.
@@ -783,7 +842,8 @@ def plot_treekin(
 
 
     # read treekin output file
-    if state_names is not None:
+    if states is not None:
+        state_names = [state.name(one_based = one_based_state_names) for state in states]
         df = pd.read_csv(
             treekin_output,
             index_col=0,
@@ -862,11 +922,10 @@ def plot_treekin(
 
         # set marker text and marker edge color 
         edge_col = "white"
-        text = col
+        text = ":".join(col.split(":")[1:])
         ## mark absorbing states with grey marker edge and remove leading "a:" in state name
         if col.startswith("a"):
             edge_col = "grey"
-            text = ":".join(col.split(":")[1:])
 
         # set text size in state labels
         text_markersize = 12
@@ -913,9 +972,6 @@ def plot_treekin(
     plt.close(f)
 
 
-# TODO: run treekin for all seeds and summarize features
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Compute RNA-RNA interaction formation dynamics by solving the master equation."
@@ -933,6 +989,7 @@ if __name__ == "__main__":
         help="Initial state with 100% population in the simulation defined by index of first and last base pair e.g., '-i 2:4' (zero based indices).",
         type=lambda x: tuple(map(int, x.split(':'))),
         required=True,
+        # TODO: Implement support for initial distribution instead of single initial state.
     )
     parser.add_argument(
         "-r", "--rates",
@@ -1063,11 +1120,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-
-
-
     # Generate rate matrix
-    matrix, state_names = generate_treekin_rates_file(
+    matrix, states = generate_treekin_rates_file(
         states_file=args.states,
         rate_file=args.rates,
         absorbing_states=args.absorbing_states,
@@ -1089,7 +1143,7 @@ if __name__ == "__main__":
     # Run treekin
     run_treekin(
         rate_file=args.rates,
-        start_state=initial_state_index,
+        initial_distribution=[[State(index=initial_state_index, base_pairs=(initial_k, initial_l), absorbing=False, energy=None),1]],
         binary=args.binary_rate_file,
         treekin_executable=args.treekin_executable,
         write_treekin_output_files=True,
@@ -1100,7 +1154,7 @@ if __name__ == "__main__":
     # Summarize dynamic features
     features = get_treekin_features(
         treekin_out_file=args.probs,
-        state_names = state_names,
+        states = states,
         target_states = args.target_states,
         features_json = args.output_summary,
         eval_full_interaction=True,
@@ -1111,11 +1165,12 @@ if __name__ == "__main__":
     plot_treekin(
         treekin_output=args.probs,
         treekin_plot=args.figure,
-        state_names=state_names,
+        states=states,
         labels=args.plot_no_labels,
         label_cutoff_fraction=args.plot_label_cutoff,
         figsize=args.figsize,
         x_lim=args.plot_x_lim,
         y_lim=args.plot_y_lim,
         title=args.plot_title,
+        one_based_state_names = True
     )
