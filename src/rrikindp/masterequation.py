@@ -266,16 +266,13 @@ def generate_treekin_rates_file(
     number_of_states = len(states) + len(
         absorbing_states
     )
-    print('nstates', len(states))
-    print('astates', len(absorbing_states))
+
 
     if dissociation_at is not None:
         number_of_states += 1
         if absorbing_dissociated_state:
             number_of_states += 1
-            print('abs diss')
 
-    print("NO",number_of_states)
 
     # build rate matrix
     matrix = []
@@ -549,7 +546,6 @@ def run_treekin(
     if binary:
         treekin_args.append("--bin")
 
-    print(treekin_args)
     treekin_process = subprocess.Popen(
         treekin_args,
         # stdin=cat_process.stdout,
@@ -601,6 +597,7 @@ def get_treekin_features(
     features_json=None,
     eval_full_interaction=False,
     eval_dissociated_state=False,
+    eval_sum_absorbing=False,
     ):
     """
     Extract kinetic features from the Treekin output, including the times to reach specific population thresholds and state populations at key time points.
@@ -619,6 +616,8 @@ def get_treekin_features(
         If True, includes the state representing the full interaction for analysis. Default is False.
     eval_dissociated_state : bool, optional
         If True, includes the dissociated state for evaluation. Default is False.
+    eval_sum_absorbing : bool, optional
+        If True, includes the sum of all dissociated states for evaluation. Default is False.
 
     Returns
     -------
@@ -661,7 +660,6 @@ def get_treekin_features(
         comment="#",
     )
 
-
     if eval_dissociated_state:
         target_states.append('s:d:d')
         if 'a:d:d' in state_names:
@@ -674,6 +672,12 @@ def get_treekin_features(
         if f'a:{full_state_name}' in state_names:
             target_states.append('a:f:f')
             df['a:f:f'] = df[f'a:{full_state_name}']
+
+    if eval_sum_absorbing:
+        absorbing_states = [state.name() for state in states if state.absorbing]
+        df['a:a:a'] = df[absorbing_states].sum(axis=1)
+        target_states.append('a:a:a')
+
     
     target_states = list(set(target_states))
 
@@ -1159,6 +1163,7 @@ if __name__ == "__main__":
         features_json = args.output_summary,
         eval_full_interaction=True,
         eval_dissociated_state=True,
+        eval_sum_absorbing=True,
     )
 
     # Plot state probabilities
