@@ -267,12 +267,10 @@ def generate_treekin_rates_file(
         absorbing_states
     )
 
-
     if dissociation_at is not None:
         number_of_states += 1
         if absorbing_dissociated_state:
             number_of_states += 1
-
 
     # build rate matrix
     matrix = []
@@ -737,7 +735,107 @@ def get_treekin_features(
 
     return data_dict
 
+def plot_E_mean(
+    treekin_out_file, 
+    states,
+    figure_path=None, 
+    figsize = (2.7,1.4),
+    x_lim=(None, None),
+    y_lim=(None, None),
+    title = None,
+    enable_tex_fonts = True,
+    ):
 
+    times, energies = get_E_mean(treekin_out_file, states)
+
+    # set up fonts
+    font_family =     'sans-serif'
+    if enable_tex_fonts:
+        font_family = "serif"
+    font_params = {
+        "font.family": font_family, # use serif/main font for text elements
+        "font.size": 8,
+        "text.usetex": enable_tex_fonts,    # use inline math for ticks
+        "pgf.rcfonts": False,   # don't setup fonts from rc parameters
+        #"pgf.preamble": [
+            #"\\usepackage{units}",  
+            #"\\usepackage{metalogo}",
+            #"\\usepackage{unicode-math}",  # unicode math setup
+            #r"\setmathfont{xits-math.otf}",
+            #r"\setmainfont{DejaVu Serif}", # serif font via preamble
+        #    ]
+    }
+
+    plt.rcParams.update(font_params)
+
+    # set figure size
+    f, ax = plt.subplots(figsize=figsize, layout="constrained")
+
+    # set axis labels
+    if enable_tex_fonts:
+        ax.set_ylabel("$\hat{E}$ (kcal/mol)")
+    else:
+        ax.set_ylabel("E_mean (kcal/mol)")
+
+    ax.set_xlabel("Time (a.u.)")
+
+    # set time axis to log scale
+    ax.set_xscale("log")
+
+    # plot E_mean
+    ax.plot(times, energies)
+
+    # set plot range
+    ax.set_xlim(x_lim[0], x_lim[1])
+    ax.set_ylim(y_lim[0], y_lim[1])
+
+    # include title
+    if title is not None:
+        ax.set_title(title)
+
+    # save figure
+    if figure_path is not None:
+        f.savefig(figure_path, bbox_inches="tight")
+
+
+def get_E_mean(
+    treekin_out_file, 
+    states,
+    ):
+    state_names = [state.name() for state in states]
+    df = pd.read_csv(
+        treekin_out_file,
+        index_col=0,
+        header=None,
+        names=["time"] + state_names + ["empty"],
+        sep=" ",
+        comment="#",
+    )
+    df.drop(columns = ['empty'], inplace = True)
+    for state in states:
+        if state.absorbing:
+            non_absorbing_state = [na_state for na_state in states if (na_state.base_pairs==state.base_pairs and na_state.absorbing==False)][0]
+            df[state.name()] = df[state.name()]*(non_absorbing_state.energy)
+        else:
+            df[state.name()] = df[state.name()]*state.energy
+    df = df.copy() # for defragmentation
+    df['E_mean'] = df.sum(axis=1)
+    #f, ax = plt.subplots(figsize=(40,40), layout="constrained")
+    #sn.heatmap(df[state_names+['E_mean']], ax = ax)
+    #f.savefig("test.pdf", bbox_inches="tight")
+    return df.index.to_list(), df['E_mean'].to_list()
+
+
+def get_E_mean_features(treekin_out_file, states, eval_times = [1, 10, 100, 1000, 10000, 100000, 1000000, 100000000, 1000000000]):
+    times, energies = get_E_mean(treekin_out_file, states)
+    features = {}
+    for time in eval_times:
+        if time > times[-1]:
+            features[f"E_mean({time:.0E})"] = 'nan'
+        else:
+            time_index = next(i for i, val in enumerate(times) if val > float(time))
+            features[f"E_mean({time:.1E})"] = energies[time_index]
+    return features
 
 def plot_treekin(
     treekin_output,
@@ -978,7 +1076,8 @@ def plot_treekin(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Compute RNA-RNA interaction formation dynamics by solving the master equation."
+        description="Compute RNA-RNA interaction formation dynamics by solving the master equation.",
+        #allow_abbrev=False,
     )
 
     # Required arguments
@@ -1069,7 +1168,11 @@ if __name__ == "__main__":
         "--binary_rate_file",
         help="Output rate file in binary format for higher precision. (True/False).",
         action="store_true",
+        #"--human_readable_rates",
+        #help="Output rate file in instead of  binary format (lower precision). (True/False).",
+        #action="store_true",
     )
+
     parser.add_argument(
         "--treekin_verbose",
         help="Print additional details from treekin's execution. (True/False).",
@@ -1164,6 +1267,17 @@ if __name__ == "__main__":
         eval_full_interaction=True,
         eval_dissociated_state=True,
         eval_sum_absorbing=True,
+    )
+
+    e_features = get_E_mean_features(args.probs, states)
+
+    print(features, e_features)
+
+    plot_E_mean(
+    args.probs, 
+    states,
+    figure_path=args.figure+'_mean.pdf', 
+    enable_tex_fonts = True,
     )
 
     # Plot state probabilities
