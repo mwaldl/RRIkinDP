@@ -848,7 +848,7 @@ def plot_treekin(
     y_lim=(-0.05, 1.05),
     title = None,
     enable_tex_fonts = True,
-    one_based_state_names = True
+    one_based_state_names = True,
 ):
     """
     Plot the Treekin output, showing state probabilities over time.
@@ -942,8 +942,8 @@ def plot_treekin(
 
     plt.rcParams.update(font_params)
 
-
     # read treekin output file
+
     if states is not None:
         state_names = [state.name(one_based = one_based_state_names) for state in states]
         df = pd.read_csv(
@@ -1025,14 +1025,17 @@ def plot_treekin(
         # set marker text and marker edge color 
         edge_col = "white"
         text = ":".join(col.split(":")[1:])
+        background_marker_edge_width = 0
+
         ## mark absorbing states with grey marker edge and remove leading "a:" in state name
         if col.startswith("a"):
             edge_col = "grey"
+            background_marker_edge_width = 0.7
 
         # set text size in state labels
-        text_markersize = 12
+        text_markersize = 13
         if len(text)<4:
-            text_markersize = 10
+            text_markersize = 11
             if len(text)<2:
                 text_markersize = 8
 
@@ -1043,8 +1046,9 @@ def plot_treekin(
             marker="o",
             color="white",
             markeredgecolor=edge_col,
-            alpha=0.7,
-            markersize=14,
+            markeredgewidth=background_marker_edge_width ,
+            alpha=0.65,
+            markersize=15,
         )
 
         # plot state label text
@@ -1053,9 +1057,10 @@ def plot_treekin(
             marker_y,
             marker="$%s$" % text,
             color=color,
+            linewidth=0.5,
             markersize=text_markersize,
-            # markeredgecolor="black",
-            # markeredgewidth=0.05,
+            markeredgecolor=color,
+            markeredgewidth=0.6,
         )
 
     # set time axis to logarithmic scale
