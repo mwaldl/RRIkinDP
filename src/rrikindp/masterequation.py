@@ -41,7 +41,7 @@ class State:
     def __repr__(self):
         return f"State(index={self.index}, base_pairs={self.base_pairs}, absorbing={self.absorbing}, energy={self.energy})"
 
-class ME:
+class MP:
     def __init__(
         self, 
         states_file,
@@ -325,8 +325,8 @@ class ME:
                 if state in states_dict.keys()
             ]
             for l in connected_states:
-                row[l] = ME.check_rate(
-                    ME.get_rate(
+                row[l] = MP.check_rate(
+                    MP.get_rate(
                         energies[k], energies[l]
                     ),
                     (k, l),
@@ -337,8 +337,8 @@ class ME:
             if dissociation_at is not None:
                 col_entry = 0.0
                 if current_j - current_i < dissociation_at:
-                    col_entry = ME.check_rate(
-                                    ME.get_rate(
+                    col_entry = MP.check_rate(
+                                    MP.get_rate(
                                         energies[k],
                                         DISSOCIATED_STATE_ENERGY,
                                     ),
@@ -362,8 +362,8 @@ class ME:
                 )
                 rates_to_absorbing[
                     index_absorbing
-                ] = ME.check_rate(
-                    ME.get_rate(
+                ] = MP.check_rate(
+                    MP.get_rate(
                         energies[k],
                         energies[k]
                         - energy_penalty_absorbing_state,
@@ -391,8 +391,8 @@ class ME:
                     if j >= interaction_length:
                         continue
                     k = states_dict[(i, j)]["index"]
-                    row[k] = ME.check_rate(
-                        ME.get_rate(
+                    row[k] = MP.check_rate(
+                        MP.get_rate(
                             DISSOCIATED_STATE_ENERGY,
                             states[k].energy,
                         ),
@@ -401,8 +401,8 @@ class ME:
                     )
             if absorbing_dissociated_state:
                 row.append(
-                    ME.check_rate(
-                        ME.get_rate(
+                    MP.check_rate(
+                        MP.get_rate(
                             DISSOCIATED_STATE_ENERGY,
                             DISSOCIATED_STATE_ENERGY
                             - energy_penalty_absorbing_state,
@@ -431,8 +431,8 @@ class ME:
                 )
     
                 row = [0.0] * number_of_states
-                row[len(states)-2] = ME.check_rate(
-                        ME.get_rate(
+                row[len(states)-2] = MP.check_rate(
+                        MP.get_rate(
                             DISSOCIATED_STATE_ENERGY
                             - energy_penalty_absorbing_state,
                             DISSOCIATED_STATE_ENERGY,
@@ -457,8 +457,8 @@ class ME:
                 )
             )
             row = [0.0] * number_of_states
-            row[a] = ME.check_rate(
-                ME.get_rate(
+            row[a] = MP.check_rate(
+                MP.get_rate(
                     states[a].energy
                     - energy_penalty_absorbing_state,
                     states[a].energy,
@@ -490,7 +490,7 @@ class ME:
             out = open(rate_file, "w")
             for row in matrix:
                 for e in row:
-                    out.write(ME.format_rates(e) + " ")
+                    out.write(MP.format_rates(e) + " ")
                 out.write("\n")
             out.close()
 
@@ -699,7 +699,7 @@ class ME:
 
         if eval_full_interaction:
             target_states.append('s:f:f')
-            full_state = ME.get_full_interaction_state(states)
+            full_state = MP.get_full_interaction_state(states)
             df['s:f:f'] = df[full_state.name()]
             if full_state.name().replace('s','a') in state_names:
                 target_states.append('a:f:f')
@@ -781,7 +781,7 @@ class ME:
         enable_tex_fonts = True,
         ):
 
-        times, energies = ME.get_E_mean(treekin_out_file, states)
+        times, energies = MP.get_E_mean(treekin_out_file, states)
 
         # set up fonts
         font_family =     'sans-serif'
@@ -862,7 +862,7 @@ class ME:
 
     @staticmethod
     def get_E_mean_features(treekin_out_file, states, eval_times = [1, 10, 100, 1000, 10000, 100000, 1000000, 100000000, 1000000000]):
-        times, energies = ME.get_E_mean(treekin_out_file, states)
+        times, energies = MP.get_E_mean(treekin_out_file, states)
         features = {}
         for time in eval_times:
             if time > times[-1]:
@@ -1276,7 +1276,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Generate rate matrix
-    matrix, states = ME.generate_treekin_rates_file(
+    matrix, states = MP.generate_treekin_rates_file(
         states_file=args.states,
         rate_file=args.rates,
         absorbing_states=args.absorbing_states,
@@ -1290,13 +1290,13 @@ if __name__ == "__main__":
 
     # Preprocess treekin input
     ## interaction length
-    interaction_length = ME.get_interaction_length(args.states)
+    interaction_length = MP.get_interaction_length(args.states)
     ## index of initial state
     initial_k, initial_l = args.initial
-    initial_state_index = ME.two2oneD(initial_k, initial_l, interaction_length)
+    initial_state_index = MP.two2oneD(initial_k, initial_l, interaction_length)
 
     # Run treekin
-    ME.run_treekin(
+    MP.run_treekin(
         rate_file=args.rates,
         initial_distribution=[[State(index=initial_state_index, base_pairs=(initial_k, initial_l), absorbing=False, energy=None),1]],
         binary=args.human_readable_rates,
@@ -1307,7 +1307,7 @@ if __name__ == "__main__":
     )
 
     # Summarize dynamic features
-    features = ME.get_treekin_features(
+    features = MP.get_treekin_features(
         treekin_out_file=args.probs,
         states = states,
         target_states = args.target_states,
@@ -1317,7 +1317,7 @@ if __name__ == "__main__":
         eval_sum_absorbing=True,
     )
 
-    e_features = ME.get_E_mean_features(args.probs, states)
+    e_features = MP.get_E_mean_features(args.probs, states)
 
     print('Features form Markov process simulation:')
     for key,value in features.items():
@@ -1326,7 +1326,7 @@ if __name__ == "__main__":
         print(f"{key}: {value}")
 
     if args.E_mean_plot_path is not None:
-        ME.plot_E_mean(
+        MP.plot_E_mean(
         args.probs, 
         states,
         figure_path=args.E_mean_plot_path, 
@@ -1334,7 +1334,7 @@ if __name__ == "__main__":
         )
 
     # Plot state probabilities
-    ME.plot_treekin(
+    MP.plot_treekin(
         treekin_output=args.probs,
         treekin_plot=args.figure,
         states=states,
