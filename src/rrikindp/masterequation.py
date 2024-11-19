@@ -12,7 +12,7 @@ import struct
 #R = 1.98720425864083 * math.pow(10, -1)  # gas contant in dagcal⋅K−1⋅mol−1
 R = 1.98720425864083 * math.pow(10, -3)  # gas contant in kcal⋅K−1⋅mol−1
 T = 273.15  # 0 Celsius in K
-MIN_RATE = 10 ** (-14)
+MIN_RATE = 10 ** (-16)
 DISSOCIATED_STATE_ENERGY = 0  # in dagcal⋅K−1⋅mol−1
 ASSOCIATION_FACTOR = 1000000000000
 
@@ -50,8 +50,8 @@ class MP:
         rates_file, 
         absorbing_states=[],
         absorbin_full_interaction=False,
-        dissociation_at=None,
-        absorbing_dissociated_state=False,
+        dissociation_at=2,
+        absorbing_dissociated_state=True,
         energy_penalty_absorbing_state=19,
         binary=True,
         ):
@@ -96,11 +96,11 @@ class MP:
         return rate
 
     @staticmethod
-    def check_rate(rate, states, min_rate=0.00000001):
+    def check_rate(rate, states, min_rate=MIN_RATE):
         """Print warning if rate to small."""
         if rate < min_rate:
             warnings.warn(
-                f"Transition {states[0]} to {states[1]} hast to small rate .\n"
+                f"Transition {states[0]} to {states[1]} has small rate.\n"
                 + f"rate: {rate}"
             )
         return rate
@@ -132,8 +132,8 @@ class MP:
         energy_type="E",
         absorbing_states=[],
         absorbin_full_interaction=False,
-        dissociation_at=None,
-        absorbing_dissociated_state=False,
+        dissociation_at=2, # None of no dissociated state
+        absorbing_dissociated_state=True,
         energy_penalty_absorbing_state=19,
         binary=True,
         state_names_file=None,
@@ -220,6 +220,12 @@ class MP:
         - Current version avoids some dependencies. As eg pandas is anyway used in evaluation
         scripts, it might also be used here.
         """
+
+        # set minimum rate depending on wether a rate file format is binary
+        if binary:
+            min_rate = MIN_RATE
+        else:
+            min_rate = 0.00000001
 
         # Warning on absorbing state rates
         if (not binary) and (
@@ -331,8 +337,8 @@ class MP:
                     MP.get_rate(
                         energies[k], energies[l]
                     ),
-                    (k, l),
-                    min_rate=MIN_RATE,
+                    (states[k].name(), states[l].name()),
+                    min_rate=min_rate,
                 )
 
             ## add column entries for dissociated state
@@ -344,8 +350,8 @@ class MP:
                                         energies[k],
                                         DISSOCIATED_STATE_ENERGY,
                                     ),
-                                    (k, "dissociated-state"),
-                                    min_rate=MIN_RATE,
+                                    (states[k].name(), "dissociated-state"),
+                                    min_rate=min_rate,
                                 )
                 row.append(col_entry)
 
@@ -372,8 +378,8 @@ class MP:
                         energies[k]
                         - energy_penalty_absorbing_state,
                     ),
-                    (k, "absorbing-state"),
-                    min_rate=MIN_RATE,
+                    (states[k].name(), "absorbing-state"),
+                    min_rate=min_rate,
                 )
             row += rates_to_absorbing
 
@@ -403,8 +409,8 @@ class MP:
                             DISSOCIATED_STATE_ENERGY,
                             states[k].energy,
                         )/association_scaling,
-                        ("dissociated-state", k),
-                        min_rate=MIN_RATE,
+                        ("dissociated-state", states[k].name()),
+                        min_rate=min_rate,
                     )
             '''       
             if absorbing_dissociated_state:
@@ -419,7 +425,7 @@ class MP:
                             "dissociated-state",
                             "dissociated-absorbing-state",
                         ),
-                        min_rate=MIN_RATE,
+                        min_rate=min_rate,
                     )
                 )
             '''
@@ -451,7 +457,7 @@ class MP:
                             "dissociated-absorbing-state",
                             "disscociated-state",
                         ),
-                        min_rate=MIN_RATE,
+                        min_rate=min_rate,
                     )
                 matrix.append(row)
         '''
@@ -475,7 +481,7 @@ class MP:
                     states[a].energy,
                 ),
                 ("absorbing_state", a),
-                min_rate=MIN_RATE,
+                min_rate=min_rate,
             )
             matrix.append(row)
 
@@ -1188,10 +1194,10 @@ if __name__ == "__main__":
         "--dissociation_at",
         help="Interaction length threshold for direct dissociation (None for no dissociated state).",
         type=int,
-        default=None,
+        default=2,
     )
     parser.add_argument(
-        "--absorbing_dissociated_state",
+        "--non_absorbing_dissociated_state",
         help="Attach an absorbing state to the dissociated state. (True/False).",
         action="store_true",
     )
@@ -1288,13 +1294,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Generate rate matrix
+    absorbing_dissociated_state = True
+    if args.non_absorbing_dissociated_state:
+        absorbing_dissociated_state = False
     matrix, states = MP.generate_treekin_rates_file(
         states_file=args.states,
         rate_file=args.rates,
         absorbing_states=args.absorbing_states,
         absorbin_full_interaction=args.absorbing_full_interaction,
         dissociation_at=args.dissociation_at,
-        absorbing_dissociated_state=args.absorbing_dissociated_state,
+        absorbing_dissociated_state=absorbing_dissociated_state,
         energy_penalty_absorbing_state=args.energy_penalty_absorbing_state,
         binary=args.human_readable_rates,
         state_names_file=args.state_names_file,
