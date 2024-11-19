@@ -14,6 +14,8 @@ R = 1.98720425864083 * math.pow(10, -3)  # gas contant in kcal⋅K−1⋅mol−1
 T = 273.15  # 0 Celsius in K
 MIN_RATE = 10 ** (-14)
 DISSOCIATED_STATE_ENERGY = 0  # in dagcal⋅K−1⋅mol−1
+ASSOCIATION_FACTOR = 1000000000000
+
 
 class State:
     def __init__(self, index: int, base_pairs: (int,int), absorbing: bool, energy: float):
@@ -301,8 +303,8 @@ class MP:
 
         if dissociation_at is not None:
             number_of_states += 1
-            if absorbing_dissociated_state:
-                number_of_states += 1
+            #if absorbing_dissociated_state:
+                #number_of_states += 1
 
         # build rate matrix
         matrix = []
@@ -347,9 +349,11 @@ class MP:
                                 )
                 row.append(col_entry)
 
+            '''
             ## add dissociated absorbing state column entry
             if absorbing_dissociated_state and dissociation_at is not None:
                 row.append(0.0)
+            '''
 
             ## add absorbing states column entries
             rates_to_absorbing = [0.0] * len(
@@ -382,7 +386,7 @@ class MP:
                     index=len(states),
                     base_pairs=("d", "d"),
                     energy=DISSOCIATED_STATE_ENERGY,
-                    absorbing=False
+                    absorbing=absorbing_dissociated_state,
                     )
             )
             row = [0.0] * (len(states))
@@ -391,14 +395,18 @@ class MP:
                     if j >= interaction_length:
                         continue
                     k = states_dict[(i, j)]["index"]
+                    association_scaling = 1
+                    if absorbing_dissociated_state:
+                        association_scaling=ASSOCIATION_FACTOR
                     row[k] = MP.check_rate(
                         MP.get_rate(
                             DISSOCIATED_STATE_ENERGY,
                             states[k].energy,
-                        ),
+                        )/association_scaling,
                         ("dissociated-state", k),
                         min_rate=MIN_RATE,
                     )
+            '''       
             if absorbing_dissociated_state:
                 row.append(
                     MP.check_rate(
@@ -414,13 +422,15 @@ class MP:
                         min_rate=MIN_RATE,
                     )
                 )
+            '''
 
             row += [0.0] * len(absorbing_states)
             matrix.append(row)
 
+        '''
         # add rate row for absorbing dissociated state
         if dissociation_at is not None:
-            if absorbing_dissociated_state:
+            if acco:
                 states.append(
                     State(
                         index=len(states),
@@ -444,6 +454,7 @@ class MP:
                         min_rate=MIN_RATE,
                     )
                 matrix.append(row)
+        '''
 
 
         # add rate rows for absorbing states (except for absorbing dissociated state)
@@ -515,7 +526,7 @@ class MP:
         treekin_output_file=None,
         time_increment = 1.02,
         sim_start_time = 0.1,
-        sim_end_time = "1E10",
+        sim_end_time = "1E8",
         temperature = 37.0,
         verbose = False,
     ):
@@ -721,7 +732,7 @@ class MP:
             if state not in df.columns:
                 data_dict[f"{state}_t99"] = 'nan'
                 data_dict[f"{state}_t50"] = 'nan'
-                data_dict[f"{state}_p1E10"]= 'nan'
+                data_dict[f"{state}_p1E8"]= 'nan'
                 data_dict[f"{state}_p1E5"]= 'nan'
                 data_dict[f"{state}_p1E3"]= 'nan'
                 data_dict[f"{state}_p1E2"]= 'nan'
@@ -750,12 +761,12 @@ class MP:
                 data_dict[f"{state}_t50"] = times[step_50_absorbed]
 
             # get the population fraction (state probability) at the given time points
-            step_1E10 = next(x for x, val in enumerate(times) if val >= 10000000000)
+            step_1E8 = next(x for x, val in enumerate(times) if val >= 100000000)
             step_1E5 = next(x for x, val in enumerate(times) if val > 100000)
             step_1E3 = next(x for x, val in enumerate(times) if val > 1000)
             step_1E2 = next(x for x, val in enumerate(times) if val > 100)
             step_1E1 = next(x for x, val in enumerate(times) if val > 10)
-            data_dict[f"{state}_p1E10"]= probs[step_1E10]
+            data_dict[f"{state}_p1E8"]= probs[step_1E8]
             data_dict[f"{state}_p1E5"]= probs[step_1E5]
             data_dict[f"{state}_p1E3"]= probs[step_1E3]
             data_dict[f"{state}_p1E2"]= probs[step_1E2]
@@ -848,7 +859,8 @@ class MP:
         )
         df.drop(columns = ['empty'], inplace = True)
         for state in states:
-            if state.absorbing:
+            if state.absorbing and state.name() != "a:d:d":
+                print(state)
                 non_absorbing_state = [na_state for na_state in states if (na_state.base_pairs==state.base_pairs and na_state.absorbing==False)][0]
                 df[state.name()] = df[state.name()]*(non_absorbing_state.energy)
             else:
@@ -861,14 +873,14 @@ class MP:
         return df.index.to_list(), df['E_mean'].to_list()
 
     @staticmethod
-    def get_E_mean_features(treekin_out_file, states, eval_times = [1, 10, 100, 1000, 10000, 100000, 1000000, 100000000, 1000000000]):
+    def get_E_mean_features(treekin_out_file, states, eval_times = [1, 10, 100, 1000, 10000, 100000, 1000000, 100000000]):
         times, energies = MP.get_E_mean(treekin_out_file, states)
         features = {}
         for time in eval_times:
             if time > times[-1]:
                 features[f"E_mean({time:.0E})"] = 'nan'
             else:
-                time_index = next(i for i, val in enumerate(times) if val > float(time))
+                time_index = next(i for i, val in enumerate(times) if val >= float(time))
                 features[f"E_mean({time:.1E})"] = energies[time_index]
         return features
 
