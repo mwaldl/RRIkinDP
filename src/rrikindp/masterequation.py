@@ -12,7 +12,7 @@ import struct
 #R = 1.98720425864083 * math.pow(10, -1)  # gas contant in dagcal⋅K−1⋅mol−1
 R = 1.98720425864083 * math.pow(10, -3)  # gas contant in kcal⋅K−1⋅mol−1
 T = 273.15  # 0 Celsius in K
-MIN_RATE = 10 ** (-16)
+MIN_RATE = 10 ** (-18) #10 ** (-15) # depends on what float precission is used in treekin
 DISSOCIATED_STATE_ENERGY = 0  # in dagcal⋅K−1⋅mol−1
 ASSOCIATION_FACTOR = 1000000000000
 
@@ -96,13 +96,17 @@ class MP:
         return rate
 
     @staticmethod
-    def check_rate(rate, states, min_rate=MIN_RATE):
+    def check_rate(rate, states, min_rate=MIN_RATE, strict=False):
         """Print warning if rate to small."""
         if rate < min_rate:
-            warnings.warn(
-                f"Transition {states[0]} to {states[1]} has small rate.\n"
-                + f"rate: {rate}"
-            )
+            if strict:
+                raise Exception(f"Transition {states[0]} to {states[1]} has a to small rate.\n"
+                + f"rate: {rate}")
+            else:
+                warnings.warn(
+                    f"Transition {states[0]} to {states[1]} has small rate.\n"
+                    + f"rate: {rate}"
+                )
         return rate
 
     @staticmethod
@@ -132,8 +136,9 @@ class MP:
         energy_type="E",
         absorbing_states=[],
         absorbin_full_interaction=False,
-        dissociation_at=2, # None of no dissociated state
+        dissociation_at=2,
         absorbing_dissociated_state=True,
+        association_scaling_factor = ASSOCIATION_FACTOR,
         energy_penalty_absorbing_state=19,
         binary=True,
         state_names_file=None,
@@ -164,6 +169,9 @@ class MP:
             to skip a single base pair as a barrier to dissociation.
         absorbing_dissociated_state : bool, optional
             If True, attaches an absorbing state to the dissociated state. Default is False.
+        association_scaling_factor : float/int, optional
+            To somewhat account for the assumtion that association is slower than the folding
+            process, association rates are mutiplied with a prefactor k = 1/association_scaling_factor.
         energy_penalty_absorbing_state : float, optional
             Energy difference in kcal/mol between the absorbing state and its connected state.
             This penalty should be large enough to ensure that the out-rate is negligible
@@ -221,6 +229,12 @@ class MP:
         scripts, it might also be used here.
         """
 
+        # throw exception if text base rate file is used association scaling factor is not compatible with non-binary rate files.
+        if not binary and absorbing_dissociated_state:
+            if association_scaling_factor > 1/MIN_RATE:
+                raise Exception("Association rates are to small to be saved in non binary rates file."
+                                + " Please use a smaller association scaling factor or binary rate file.")
+                
         # set minimum rate depending on wether a rate file format is binary
         if binary:
             min_rate = MIN_RATE
@@ -228,18 +242,15 @@ class MP:
             min_rate = 0.00000001
 
         # Warning on absorbing state rates
-        if (not binary) and (
-            energy_penalty_absorbing_state > 10
-        ):
-            warnings.warn(
-                "Reset energy penalty for absorbing states to 10kcal/mol. "
-                + str(energy_penalty_absorbing_state)
-                + "kcal/mol would lead to smaller rates than"
-                + " what can be written to non-binary rate file. "
-                + "With 10kcal/mol out-rates of absorbing states are not "
-                + "negligible after 10E3 treekin time units."
-            )
-            energy_penalty_absorbing_state = 10
+        if (not binary) and ( MP.get_rate(0,energy_penalty_absorbing_state) < min_rate): 
+                raise Exception("The set energy penalty for absorbing states  leads to small rates that"
+                    + " can not be represented in non binary rate file. "
+                    + "The current energy penalty "
+                    + f"is {energy_penalty_absorbing_state} kcal/mol, corresponding "
+                    + f"to a rate of {MP.get_rate(0,energy_penalty_absorbing_state)}.\n" 
+                    + "Recomended energy penalties for absorbing states when using "
+                    + "non binary rate files are <= 10kcal/mol."
+                )
 
         # set up data structures with states info
         states = []
@@ -338,7 +349,7 @@ class MP:
                         energies[k], energies[l]
                     ),
                     (states[k].name(), states[l].name()),
-                    min_rate=min_rate,
+                    min_rate=min_rate, strict=not(binary)
                 )
 
             ## add column entries for dissociated state
@@ -351,15 +362,10 @@ class MP:
                                         DISSOCIATED_STATE_ENERGY,
                                     ),
                                     (states[k].name(), "dissociated-state"),
-                                    min_rate=min_rate,
+                                    min_rate=min_rate, strict=not(binary)
                                 )
                 row.append(col_entry)
 
-            '''
-            ## add dissociated absorbing state column entry
-            if absorbing_dissociated_state and dissociation_at is not None:
-                row.append(0.0)
-            '''
 
             ## add absorbing states column entries
             rates_to_absorbing = [0.0] * len(
@@ -379,7 +385,7 @@ class MP:
                         - energy_penalty_absorbing_state,
                     ),
                     (states[k].name(), "absorbing-state"),
-                    min_rate=min_rate,
+                    min_rate=min_rate, strict=not(binary)
                 )
             row += rates_to_absorbing
 
@@ -403,65 +409,18 @@ class MP:
                     k = states_dict[(i, j)]["index"]
                     association_scaling = 1
                     if absorbing_dissociated_state:
-                        association_scaling=ASSOCIATION_FACTOR
+                        association_scaling=association_scaling_factor
                     row[k] = MP.check_rate(
                         MP.get_rate(
                             DISSOCIATED_STATE_ENERGY,
                             states[k].energy,
                         )/association_scaling,
                         ("dissociated-state", states[k].name()),
-                        min_rate=min_rate,
+                        min_rate=min_rate,strict=not(binary)
                     )
-            '''       
-            if absorbing_dissociated_state:
-                row.append(
-                    MP.check_rate(
-                        MP.get_rate(
-                            DISSOCIATED_STATE_ENERGY,
-                            DISSOCIATED_STATE_ENERGY
-                            - energy_penalty_absorbing_state,
-                        ),
-                        (
-                            "dissociated-state",
-                            "dissociated-absorbing-state",
-                        ),
-                        min_rate=min_rate,
-                    )
-                )
-            '''
 
             row += [0.0] * len(absorbing_states)
             matrix.append(row)
-
-        '''
-        # add rate row for absorbing dissociated state
-        if dissociation_at is not None:
-            if acco:
-                states.append(
-                    State(
-                        index=len(states),
-                        base_pairs=("d", "d"),
-                        energy=DISSOCIATED_STATE_ENERGY - energy_penalty_absorbing_state,
-                        absorbing=True,
-                    )
-                )
-    
-                row = [0.0] * number_of_states
-                row[len(states)-2] = MP.check_rate(
-                        MP.get_rate(
-                            DISSOCIATED_STATE_ENERGY
-                            - energy_penalty_absorbing_state,
-                            DISSOCIATED_STATE_ENERGY,
-                        ),
-                        (
-                            "dissociated-absorbing-state",
-                            "disscociated-state",
-                        ),
-                        min_rate=min_rate,
-                    )
-                matrix.append(row)
-        '''
-
 
         # add rate rows for absorbing states (except for absorbing dissociated state)
         for a in absorbing_states:
@@ -481,7 +440,7 @@ class MP:
                     states[a].energy,
                 ),
                 ("absorbing_state", a),
-                min_rate=min_rate,
+                min_rate=min_rate, strict=not(binary)
             )
             matrix.append(row)
 
@@ -866,7 +825,6 @@ class MP:
         df.drop(columns = ['empty'], inplace = True)
         for state in states:
             if state.absorbing and state.name() != "a:d:d":
-                print(state)
                 non_absorbing_state = [na_state for na_state in states if (na_state.base_pairs==state.base_pairs and na_state.absorbing==False)][0]
                 df[state.name()] = df[state.name()]*(non_absorbing_state.energy)
             else:
@@ -1197,6 +1155,12 @@ if __name__ == "__main__":
         default=2,
     )
     parser.add_argument(
+        "--association_scaling",
+        help="Prefactor^-1 for association rates.",
+        type=int,
+        default=1000000000000,
+    )
+    parser.add_argument(
         "--non_absorbing_dissociated_state",
         help="Attach an absorbing state to the dissociated state. (True/False).",
         action="store_true",
@@ -1224,12 +1188,9 @@ if __name__ == "__main__":
         default="treekin",
     )
     parser.add_argument(
-        #"--binary_rate_file",
-        #help="Output rate file in binary format for higher precision. (True/False).",
-        #action="store_true",
         "--human_readable_rates",
         help="Output rate file as text file instead of binary file (lower precision). (True/False).",
-        action="store_false",
+        action="store_true",
     )
 
     parser.add_argument(
@@ -1293,10 +1254,50 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Generate rate matrix
+
+    # processing args
+    ## use binary rate file?
+    binary = not(args.human_readable_rates)
+
+    ## make disscociated state absorbing?
     absorbing_dissociated_state = True
     if args.non_absorbing_dissociated_state:
         absorbing_dissociated_state = False
+
+
+    # Catch to large absorbing state penalties when using non binary rate files
+    if not binary and args.energy_penalty_absorbing_state > 10:
+            raise Exception("The set energy penalty for absorbing states  leads to small rates that"
+                + " can not be represented in non binary rate file. "
+                + "The current energy penalty "
+                + f"is {args.energy_penalty_absorbing_state} kcal/mol, corresponding "
+                + f"to a rate of {MP.get_rate(0,args.energy_penalty_absorbing_state)}.\n" 
+                + "Recomended energy penalties for absorbing states when using "
+                + "non binary rate files are <= 10kcal/mol."
+            )
+
+    # Catch to large absorbing state penalties when using non binary rate files
+    if not binary and absorbing_dissociated_state:
+        if args.association_scaling > 100000000:
+            raise Exception("The set association scaling factor leads to rates that are to small"
+                +" to be represented in a non-binary (text format) rates file. Either\n"
+                +" - switch to binary rate files (no --human_readable_rates flag),\n" 
+                +" - use a smaller association scaling factor (eg --association_scaling 1 or 1000) or\n"
+                +" - make the dissociated state non absorbing (--non_absorbing_dissociated_state)."
+                )
+        else:
+            warnings.warn("The set association scaling factor might lead to rates that are to small"
+                +" to be represented in a non-binary (text format) rates file. If warnings/errors about to"
+                +" small association rates appear (rates from dissociated state to other state), either\n"
+                +" - switch to binary rate files (no --human_readable_rates flag),\n" 
+                +" - use a smaller association scaling factor (eg --association_scaling 1 or 1000) or\n"
+                +" - make the dissociated state non absorbing (--non_absorbing_dissociated_state)."
+                )
+
+
+
+
+    # Generate rate matrix
     matrix, states = MP.generate_treekin_rates_file(
         states_file=args.states,
         rate_file=args.rates,
@@ -1304,8 +1305,9 @@ if __name__ == "__main__":
         absorbin_full_interaction=args.absorbing_full_interaction,
         dissociation_at=args.dissociation_at,
         absorbing_dissociated_state=absorbing_dissociated_state,
+        association_scaling_factor=args.association_scaling,
         energy_penalty_absorbing_state=args.energy_penalty_absorbing_state,
-        binary=args.human_readable_rates,
+        binary=binary,
         state_names_file=args.state_names_file,
     )
 
@@ -1320,7 +1322,7 @@ if __name__ == "__main__":
     MP.run_treekin(
         rate_file=args.rates,
         initial_distribution=[[State(index=initial_state_index, base_pairs=(initial_k, initial_l), absorbing=False, energy=None),1]],
-        binary=args.human_readable_rates,
+        binary=binary,
         treekin_executable=args.treekin_executable,
         write_treekin_output_files=True,
         treekin_output_file=args.probs,
