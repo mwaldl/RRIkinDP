@@ -88,6 +88,8 @@ class MP:
             state_names_file=None,
             one_based_state_names=True,
         )
+        # TODO set up class and write class functions that use static functions
+
 
     """
     def get_states(self):
