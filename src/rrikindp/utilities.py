@@ -1,24 +1,29 @@
 
 
-def intarna_to_bplist(bplist_string):
+def intarna_to_bplist(bplist_string, zero_based=False):
     """Convert base pair list from intarna string format to python list.
 
-    Arguments:
-    bplist_string -- string with base pairs as for example returned by
-                     IntaRNA. For example:
-                    '(134,56):(135,55):(136,54):(137,53):(138,52):(139,51)'
-
+    Args:
+        bplist_string (str): string with base pairs as for example returned by
+            IntaRNA. For example:
+            '(134,56):(135,55):(136,54):(137,53):(138,52):(139,51)'
+        zero_based (bool): if true 1-based intarna position indices get
+            converted to 0-based indices
 
     Returns:
-    List of base pairs. Each base pair is represented as a tuple of the
-    pairing positions. For example:
-    [(134, 56), (135, 55), (136, 54), (137, 53), (138, 52), (139, 51)]
-
+        List of base pairs. Each base pair is represented as a tuple of the
+        pairing positions. For example:
+        [(134, 56), (135, 55), (136, 54), (137, 53), (138, 52), (139, 51)]
+        or if zero_based = True:
+        [(133, 55), (134, 54), (135, 53), (136, 52), (137, 51), (138, 50)]
     """
+    b = 0
+    if zero_based:
+        b = 1
     return [
         (
-            int(item.split(",")[0].strip("(")),
-            int(item.split(",")[1].strip(")")),
+            int(item.split(",")[0].strip("(")) - b,
+            int(item.split(",")[1].strip(")")) - b,
         )
         for item in bplist_string.split(":")
     ]
@@ -98,3 +103,5 @@ def get_string_representations(seq1, seq2, bp_list, id1="Seq1", id2="Seq2"):
     # gapped_seq1, gapped_seq2, bps_as_string = lines
 
     return "\n".join([gapped_seq1, bps_as_string, gapped_seq2])
+
+
