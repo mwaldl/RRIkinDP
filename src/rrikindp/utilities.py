@@ -32,35 +32,34 @@ def intarna_to_bplist(bplist_string, zero_based=False):
 def get_string_representations(seq1, seq2, bp_list, id1="Seq1", id2="Seq2"):
     """Get interaction represented as a single string with three lines.
 
-    Arguments:
-    seq1 -- full sequence of first RNA (string)
-    seq2 -- full sequence of second RNA (string)
-    bp_list -- list of interacting base pairs (list of tuples; one based indices)
-    id1 -- name of first RNA (string)
-    id2 -- name of second RNA (string)
+    Args:
+        seq1 (str): full sequence of first RNA
+        seq2 (str): full sequence of second RNA
+        bp_list (list): list of interacting base pairs in tuple. Note that indices should be one based
+        id1 (str): name of first RNA
+        id2 (str): name of second RNA
 
-    Output:
-    Within the three line string representation, the first and third line
-    repesenting the seqeunce of the two pairing RNAs within the
-    interaction site. The sequences contain gaps such that the paring
-    positions are aligned. The sequence directions are annotated with 5'
-    and 3'. The subsequence is annotated after the sequence id by the
-    (one based) index of the first and last nucleotide within the
-    interaction site. Base pairs are marked by pipes in the
-    corresponding positions within the second line. Interior loops and
-    buldges within the interaction site correspond to spaces within the
-    second line.
+    Returns:
+        Within the three line string representation, the first and third line
+        repesenting the seqeunce of the two pairing RNAs within the
+        interaction site. The sequences contain gaps such that the paring
+        positions are aligned. The sequence directions are annotated with 5'
+        and 3'. The subsequence is annotated after the sequence id by the
+        (one based) index of the first and last nucleotide within the
+        interaction site. Base pairs are marked by pipes in the
+        corresponding positions within the second line. Interior loops and
+        buldges within the interaction site correspond to spaces within the
+        second line.
 
-    Examples (missing tailing spaces):
+        Examples (missing tailing spaces):
 
-    5'-UACGGC-3' ArcZ[50:55]
-       ||||||
-    3'-AUGUCG-5' CyaR[34:29]
+        5'-UACGGC-3' ArcZ[50:55]
+           ||||||
+        3'-AUGUCG-5' CyaR[34:29]
 
-    5'-GAUUUCCUGGUGUAACGAAUUUUUUAAGUGC-3' DsrA[10:40]
-       ||||||||  |||||||||||||  ||||||
-    3'-CUAAAGGGGAACAUUGCUUAAAGU-UUUACG-5' rpoS[104:75]
-
+        5'-GAUUUCCUGGUGUAACGAAUUUUUUAAGUGC-3' DsrA[10:40]
+           ||||||||  |||||||||||||  ||||||
+        3'-CUAAAGGGGAACAUUGCUUAAAGU-UUUACG-5' rpoS[104:75]
     """
 
     # introduce gaps such that pairing sequence positions are aligned
@@ -103,5 +102,4 @@ def get_string_representations(seq1, seq2, bp_list, id1="Seq1", id2="Seq2"):
     # gapped_seq1, gapped_seq2, bps_as_string = lines
 
     return "\n".join([gapped_seq1, bps_as_string, gapped_seq2])
-
 
