@@ -24,17 +24,27 @@
     ]
 
 
-def get_string_representations(seq1, seq2, bp_list, id1="Seq1", id2="Seq2"):
-    """Get interaction represented as a single string with three lines.
+def get_string_representations(
+    seq1: str,
+    seq2: str,
+    bp_list: List[Tuple[int, int]],
+    id1: str = "Seq1",
+    id2: str = "Seq2"
+) -> str:
+    """
+    Generate a string representation of RNA interaction, as a 3-line string.
 
     Args:
-        seq1 (str): full sequence of first RNA
-        seq2 (str): full sequence of second RNA
-        bp_list (list): list of interacting base pairs in tuple. Note that indices should be one based
-        id1 (str): name of first RNA
-        id2 (str): name of second RNA
+        seq1 (str): Full sequence of the first RNA.
+        seq2 (str): Full sequence of the second RNA.
+        bp_list (List[Tuple[int, int]]): List of interacting base pairs (1-based).
+        id1 (str): Name/identifier for the first RNA.
+        id2 (str): Name/identifier for the second RNA.
 
     Returns:
+        str: Multi-line string representation of the interaction.
+
+    Notes:
         Within the three line string representation, the first and third line
         repesenting the seqeunce of the two pairing RNAs within the
         interaction site. The sequences contain gaps such that the paring
@@ -46,7 +56,7 @@ def get_string_representations(seq1, seq2, bp_list, id1="Seq1", id2="Seq2"):
         buldges within the interaction site correspond to spaces within the
         second line.
 
-        Examples (missing tailing spaces):
+    Examples (missing tailing spaces):
 
         5'-UACGGC-3' ArcZ[50:55]
            ||||||
@@ -59,14 +69,13 @@ def get_string_representations(seq1, seq2, bp_list, id1="Seq1", id2="Seq2"):
 
     # introduce gaps such that pairing sequence positions are aligned
     # and introduce pipes to mark pairing positions
+    gapped_seq1, gapped_seq2, bps_as_string = "", "", ""
 
-    gapped_seq1 = ""  # firs line
-    gapped_seq2 = ""  # third line
-    bps_as_string = ""  # second line
     for i in range(len(bp_list) - 1):
-        len_a_frag = -bp_list[i][0] + bp_list[i + 1][0]
-        len_b_frag = bp_list[i][1] - bp_list[i + 1][1]
+        len_a_frag =  - bp_list[i][0] + bp_list[i + 1][0]
+        len_b_frag =    bp_list[i][1] - bp_list[i + 1][1]
         fragment_length = max(len_a_frag, len_b_frag)
+
         gapped_seq1 += (
             seq1[bp_list[i][0] - 1 : bp_list[i + 1][0] - 1]
             + (fragment_length - len_a_frag) * "-"
@@ -75,28 +84,25 @@ def get_string_representations(seq1, seq2, bp_list, id1="Seq1", id2="Seq2"):
             seq2[bp_list[i][1] - 1 : bp_list[i + 1][1] - 1 : -1]
             + (fragment_length - len_b_frag) * "-"
         )
-        bps_as_string += "|" + (fragment_length - 1) * " "
+        bps_as_string += "|" + " " * (fragment_length - 1)
+
     gapped_seq1 += seq1[bp_list[-1][0] - 1]
     gapped_seq2 += seq2[bp_list[-1][1] - 1]
     bps_as_string += "|"
 
     # annotate sequences
-    gapped_seq1 = f"5'-{gapped_seq1}-3' {id1}[{bp_list[0][0]},{bp_list[-1][0]}]"
-    gapped_seq2 = f"3'-{gapped_seq2}-5' {id2}[{bp_list[0][1]},{bp_list[-1][1]}]"
-    bps_as_string = f"   {bps_as_string}    "
+    gapped_seq1 = f"5'-{gapped_seq1}-3' {id1}[{bp_list[0][0]}:{bp_list[-1][0]}]"
+    gapped_seq2 = f"3'-{gapped_seq2}-5' {id2}[{bp_list[0][1]}:{bp_list[-1][1]}]"
+    bps_as_string = f"   {bps_as_string}"
 
-    # unify length of lines
-    length = max([len(gapped_seq1), len(gapped_seq2)])
-    gapped_seq1 = gapped_seq1.ljust(length)
-    gapped_seq2 = gapped_seq2.ljust(length)
-    bps_as_string = bps_as_string.ljust(length)
+    # unify length of line and return
+    max_length = max(len(gapped_seq1), len(gapped_seq2))
+    return "\n".join([
+        gapped_seq1.ljust(max_length),
+        bps_as_string.ljust(max_length),
+        gapped_seq2.ljust(max_length)
+    ])
 
-    # lines = [gapped_seq1, gapped_seq2, bps_as_string]
-    # length = max([len(l) in lines])
-    # lines = [l.ljust(length) for l in lines]
-    # gapped_seq1, gapped_seq2, bps_as_string = lines
-
-    return "\n".join([gapped_seq1, bps_as_string, gapped_seq2])
 
 def run_intarna(
     seq1: str,
