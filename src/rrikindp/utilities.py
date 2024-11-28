@@ -1,4 +1,9 @@
 
+import os
+import subprocess
+import pandas as pd
+from io import StringIO
+from typing import List, Optional, Union
 
 def intarna_to_bplist(bplist_string: str, zero_based: bool = False) -> List[Tuple[int, int]]:
     """
@@ -58,7 +63,7 @@ def get_RRI_string_representations(
             or bulges within the interaction site.
 
         Examples:
-        
+
             5'-UACGGC-3' ArcZ[50:55]
             ||||||
             3'-AUGUCG-5' CyaR[34:29]
