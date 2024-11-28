@@ -1,73 +1,87 @@
 
+import os
+import subprocess
+import pandas as pd
+from io import StringIO
+from typing import List, Optional, Union
 
-def intarna_to_bplist(bplist_string):
-    """Convert base pair list from intarna string format to python list.
+def intarna_to_bplist(bplist_string: str, zero_based: bool = False) -> List[Tuple[int, int]]:
+    """
+    Convert a base pair list from IntaRNA string format to a Python list.
 
-    Arguments:
-    bplist_string -- string with base pairs as for example returned by
-                     IntaRNA. For example:
-                    '(134,56):(135,55):(136,54):(137,53):(138,52):(139,51)'
-
+    Args:
+        bplist_string (str): String with base pairs as returned by IntaRNA.
+            Example: '(134,56):(135,55):(136,54):(137,53):(138,52):(139,51)'
+        zero_based (bool): Convert 1-based nucleotide indices from IntaRNA to 0-based indices if True.
 
     Returns:
-    List of base pairs. Each base pair is represented as a tuple of the
-    pairing positions. For example:
-    [(134, 56), (135, 55), (136, 54), (137, 53), (138, 52), (139, 51)]
-
+        List[Tuple[int, int]]: List of base pairs as tuples. Example:
+        [(134, 56), (135, 55), ..., (139, 51)] or zero-based if `zero_based` is True.
     """
+
+    offset = 1 if zero_based else 0
     return [
         (
-            int(item.split(",")[0].strip("(")),
-            int(item.split(",")[1].strip(")")),
+            int(item.split(",")[0].strip("(")) - offset,
+            int(item.split(",")[1].strip(")")) - offset,
         )
         for item in bplist_string.split(":")
     ]
 
 
-def get_string_representations(seq1, seq2, bp_list, id1="Seq1", id2="Seq2"):
-    """Get interaction represented as a single string with three lines.
+def get_RRI_string_representations(
+    seq1: str,
+    seq2: str,
+    bp_list: List[Tuple[int, int]],
+    id1: str = "Seq1",
+    id2: str = "Seq2"
+) -> str:
+    """
+    Generate a string representation of RNA interaction, as a 3-line string.
 
-    Arguments:
-    seq1 -- full sequence of first RNA (string)
-    seq2 -- full sequence of second RNA (string)
-    bp_list -- list of interacting base pairs (list of tuples; one based indices)
-    id1 -- name of first RNA (string)
-    id2 -- name of second RNA (string)
+    Args:
+        seq1 (str): Full sequence of the first RNA.
+        seq2 (str): Full sequence of the second RNA.
+        bp_list (List[Tuple[int, int]]): List of interacting base pairs (1-based).
+        id1 (str): Name/identifier for the first RNA.
+        id2 (str): Name/identifier for the second RNA.
 
-    Output:
-    Within the three line string representation, the first and third line
-    repesenting the seqeunce of the two pairing RNAs within the
-    interaction site. The sequences contain gaps such that the paring
-    positions are aligned. The sequence directions are annotated with 5'
-    and 3'. The subsequence is annotated after the sequence id by the
-    (one based) index of the first and last nucleotide within the
-    interaction site. Base pairs are marked by pipes in the
-    corresponding positions within the second line. Interior loops and
-    buldges within the interaction site correspond to spaces within the
-    second line.
+    Returns:
+        str: Multi-line string representation of the interaction.
 
-    Examples (missing tailing spaces):
+    Notes:
+        The three-line string representation depicts the interaction between
+        two RNAs within the interaction site. 
+        - **First and Third Lines:** Represent the sequences of the two pairing
+            RNAs, aligned with gaps to ensure pairing positions are properly matched. 
+        - **Direction Annotation:** Sequence directions are explicitly marked with 5' and 3'. 
+        - **Subsequence Annotation:** The indices of the first and last 
+            nucleotides within the interaction site are provided in parentheses
+            after the respective sequence IDs. These indices are 1-based.
+        - **Second Line:** Displays the base pair interactions with vertical
+            pipes (`|`) at aligned positions. Spaces indicate interior loops
+            or bulges within the interaction site.
 
-    5'-UACGGC-3' ArcZ[50:55]
-       ||||||
-    3'-AUGUCG-5' CyaR[34:29]
+        Examples:
 
-    5'-GAUUUCCUGGUGUAACGAAUUUUUUAAGUGC-3' DsrA[10:40]
-       ||||||||  |||||||||||||  ||||||
-    3'-CUAAAGGGGAACAUUGCUUAAAGU-UUUACG-5' rpoS[104:75]
+            5'-UACGGC-3' ArcZ[50:55]
+            ||||||
+            3'-AUGUCG-5' CyaR[34:29]
 
+            5'-GAUUUCCUGGUGUAACGAAUUUUUUAAGUGC-3' DsrA[10:40]
+            ||||||||  |||||||||||||  ||||||
+            3'-CUAAAGGGGAACAUUGCUUAAAGU-UUUACG-5' rpoS[104:75]
     """
 
     # introduce gaps such that pairing sequence positions are aligned
     # and introduce pipes to mark pairing positions
+    gapped_seq1, gapped_seq2, bps_as_string = "", "", ""
 
-    gapped_seq1 = ""  # firs line
-    gapped_seq2 = ""  # third line
-    bps_as_string = ""  # second line
     for i in range(len(bp_list) - 1):
-        len_a_frag = -bp_list[i][0] + bp_list[i + 1][0]
-        len_b_frag = bp_list[i][1] - bp_list[i + 1][1]
+        len_a_frag =  - bp_list[i][0] + bp_list[i + 1][0]
+        len_b_frag =    bp_list[i][1] - bp_list[i + 1][1]
         fragment_length = max(len_a_frag, len_b_frag)
+
         gapped_seq1 += (
             seq1[bp_list[i][0] - 1 : bp_list[i + 1][0] - 1]
             + (fragment_length - len_a_frag) * "-"
@@ -76,25 +90,118 @@ def get_string_representations(seq1, seq2, bp_list, id1="Seq1", id2="Seq2"):
             seq2[bp_list[i][1] - 1 : bp_list[i + 1][1] - 1 : -1]
             + (fragment_length - len_b_frag) * "-"
         )
-        bps_as_string += "|" + (fragment_length - 1) * " "
+        bps_as_string += "|" + " " * (fragment_length - 1)
+
     gapped_seq1 += seq1[bp_list[-1][0] - 1]
     gapped_seq2 += seq2[bp_list[-1][1] - 1]
     bps_as_string += "|"
 
     # annotate sequences
-    gapped_seq1 = f"5'-{gapped_seq1}-3' {id1}[{bp_list[0][0]},{bp_list[-1][0]}]"
-    gapped_seq2 = f"3'-{gapped_seq2}-5' {id2}[{bp_list[0][1]},{bp_list[-1][1]}]"
-    bps_as_string = f"   {bps_as_string}    "
+    gapped_seq1 = f"5'-{gapped_seq1}-3' {id1}[{bp_list[0][0]}:{bp_list[-1][0]}]"
+    gapped_seq2 = f"3'-{gapped_seq2}-5' {id2}[{bp_list[0][1]}:{bp_list[-1][1]}]"
+    bps_as_string = f"   {bps_as_string}"
 
-    # unify length of lines
-    length = max([len(gapped_seq1), len(gapped_seq2)])
-    gapped_seq1 = gapped_seq1.ljust(length)
-    gapped_seq2 = gapped_seq2.ljust(length)
-    bps_as_string = bps_as_string.ljust(length)
+    # unify length of line and return
+    max_length = max(len(gapped_seq1), len(gapped_seq2))
+    return "\n".join([
+        gapped_seq1.ljust(max_length),
+        bps_as_string.ljust(max_length),
+        gapped_seq2.ljust(max_length)
+    ])
 
-    # lines = [gapped_seq1, gapped_seq2, bps_as_string]
-    # length = max([len(l) in lines])
-    # lines = [l.ljust(length) for l in lines]
-    # gapped_seq1, gapped_seq2, bps_as_string = lines
 
-    return "\n".join([gapped_seq1, bps_as_string, gapped_seq2])
+def run_intarna(
+    seq1: str,
+    seq2: str,
+    id1: str = "target",
+    id2: str = "query",
+    temperature: float = 37.0,
+    intarna_args: Optional[List[str]] = None,
+    out_file: Optional[str] = None,
+    intarna_executable: str = "IntaRNA",
+    threads: int = 1,
+    outMode: str = "C",
+    outCsvCols: str = "id1,id2,start1,end1,start2,end2,seq1,seq2,bpList,E,Etotal,"
+                      "ED1,ED2,Pu1,Pu2,E_init,E_loops,E_dangleL,E_dangleR,E_endL,"
+                      "E_endR,E_hybrid,E_norm,E_add,P_E,hybridDPfull"
+) -> Union[pd.DataFrame, str]:
+    """
+    Execute IntaRNA with specified parameters.
+
+    Args:
+        seq1 (str): RNA sequence or path to a FASTA file for the first RNA.
+        seq2 (str): RNA sequence or path to a FASTA file for the second RNA.
+        id1 (Optional[str]): Identifier for the first RNA (default: "target" for sequence input).
+        id2 (Optional[str]): Identifier for the second RNA (default: "query" for sequence input).
+        temperature (float): Temperature for the interaction prediction in Celsius.
+        intarna_args (Optional[List[str]]): Additional arguments for IntaRNA.
+        out_file (Optional[str]): Path to save the output (if provided).
+        intarna_executable (str): Path or name of the IntaRNA executable.
+        outMode (str): Output mode for IntaRNA.
+        outCsvCols (str): Columns for CSV output (if outMode is "C").
+
+    Returns:
+        pd.DataFrame or str: Parsed DataFrame if outMode is "C"; otherwise, raw output.
+
+    Notes:
+        If `seq1` or `seq2` is a valid file path, it will be used directly as a FASTA file.
+        Otherwise, they are treated as RNA sequences, and IDs are required or defaulted to "target" and "query".
+    """
+
+    if intarna_args is None:
+        intarna_args = []
+
+    # Determine if inputs are sequences or file paths
+    seq1_is_file = os.path.isfile(seq1)
+    seq2_is_file = os.path.isfile(seq2)
+
+    args = [intarna_executable]
+
+    # Handle `seq1` input
+    if seq1_is_file:
+        args.extend(["-t", seq1])
+    else:
+        args.extend(["-t", seq1, "--tId", id1])
+
+    # Handle `seq2` input
+    if seq2_is_file:
+        args.extend(["-q", seq2])
+    else:
+        args.extend(["-q", seq2, "--qId", id2])
+
+    # Add common arguments
+    args.extend([
+        "--temperature", str(temperature),
+        "--outMode", outMode,
+        "--outCsvCols="+ outCsvCols,
+        "--threads", str(threads),
+    ] + intarna_args)
+
+    # Add output file argument if specified
+    if out_file:
+        args.extend(["--out", out_file])
+
+    # Run IntaRNA
+    result = subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
+        #universal_newlines=True,  # TODO: needed? pandas needs stream anyway
+        # stdout=subprocess.PIPE,
+        # stderr=subprocess.PIPE,
+    )
+
+    # Parse or return the output
+    if result.returncode != 0:
+        raise RuntimeError(f"IntaRNA failed with return code {result.returncode}: {result.stderr}")
+
+    if outMode == "C":
+        if out_file:
+            return pd.read_csv(out_file, sep=";", comment="#")
+        else:
+            return pd.read_csv(StringIO(result.stdout), sep=";", comment="#")
+    else:
+        if out_file:
+            with open(out_file, "r") as file:
+                return file.read()
+        return result.stdout
