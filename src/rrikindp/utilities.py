@@ -99,88 +99,76 @@ def get_string_representations(seq1, seq2, bp_list, id1="Seq1", id2="Seq2"):
     return "\n".join([gapped_seq1, bps_as_string, gapped_seq2])
 
 def run_intarna(
-    seq1,
-    seq2,
-    id1="target",
-    id2="query",
-    temperature=37.0,
-    intarna_args=[],
-    out_file=None,
-    intarna_executable="IntaRNA",
-    outMode="C",
-    outCsvCols="id1,id2,start1,end1,start2,end2,seq1,seq2,"
-    + "bpList,E,Etotal,ED1,ED2,Pu1,Pu2,E_init,E_loops,E_dangleL,"
-    + "E_dangleR,E_endL,E_endR,E_hybrid,E_norm,E_add,P_E,hybridDPfull",
-):
-    """Run IntaRNA.
-        Only tested with csv output format.
-        Provide following intarna arguments through function arguments
-        and not through intarna_args variable:
-        - --out  as out_file
-        - --outMode as outMode
-        - -t as seq1
-        - -q as seq2
-        - --tId  as id1
-        - --qId as id2
+    seq1: str,
+    seq2: str,
+    id1: str = "target",
+    id2: str = "query",
+    temperature: float = 37.0,
+    intarna_args: Optional[List[str]] = None,
+    out_file: Optional[str] = None,
+    intarna_executable: str = "IntaRNA",
+    outMode: str = "C",
+    outCsvCols: str = "id1,id2,start1,end1,start2,end2,seq1,seq2,bpList,E,Etotal,"
+                      "ED1,ED2,Pu1,Pu2,E_init,E_loops,E_dangleL,E_dangleR,E_endL,"
+                      "E_endR,E_hybrid,E_norm,E_add,P_E,hybridDPfull"
+) -> Union[pd.DataFrame, str]:
+    """
+    Execute IntaRNA with specified parameters.
 
     Args:
-        seq1: sequence 1
-        seq2: sequence 2
-        id1: sequence 1 identifier
-        id2: sequence 2 identifier
-        temperature: temperature
-        intarna_args: additional IntaRNA arguments
-        out_file: path to store output
-        intarna_executable: callable IntaRNA tool
-        outMode: IntaRNA output mode
-        outCsVCols: output csv format
-    """
-    # set up intarna arguments
-    intarna_args = [
-        intarna_executable,
-        "-t",
-        seq1,
-        "-q",
-        seq2,
-        "--tId",
-        id1,
-        "--qId",
-        id2,
-        "--temperature",
-        str(temperature),
-        "--outMode",
-        outMode,
-        "--outCsvCols=" + outCsvCols,
-    ] + intarna_args
-    if out_file is not None:
-        intarna_args.append("--out")
-        intarna_args.append(out_file)
+        seq1 (str): Sequence of the first RNA.
+        seq2 (str): Sequence of the second RNA.
+        id1 (str): Identifier for the first RNA.
+        id2 (str): Identifier for the second RNA.
+        temperature (float): Temperature for the interaction prediction in Celsius.
+        intarna_args (Optional[List[str]]): Additional arguments for IntaRNA.
+        out_file (Optional[str]): Path to save the output (if provided).
+        intarna_executable (str): Path or name of the IntaRNA executable.
+        outMode (str): Output mode for IntaRNA.
+        outCsvCols (str): Columns for CSV output (if outMode is "C").
 
-    # call intarna
-    cp = subprocess.run(
-        intarna_args,
+    Returns:
+        pd.DataFrame or str: Parsed DataFrame if outMode is "C"; otherwise, raw output.
+    
+    Notes:
+        Only tested with csv output format.
+    """
+    if intarna_args is None:
+        intarna_args = []
+
+    args = [
+        intarna_executable,
+        "-t", seq1,
+        "-q", seq2,
+        "--tId", id1,
+        "--qId", id2,
+        "--temperature", str(temperature),
+        "--outMode", outMode,
+        "--outCsvCols="+ outCsvCols,
+    ] + intarna_args
+
+    if out_file:
+        args.extend(["--out", out_file])
+
+    result = subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
         universal_newlines=True,  # TODO: needed? pd needs stream anyway
         # stdout=subprocess.PIPE,
         # stderr=subprocess.PIPE,
-        capture_output=True,
     )
 
-    # prepare return format
-    if cp.returncode != 0:
-        print("IntaRNA returncode is " + str(cp.returncode))
-        print(cp)
+    if result.returncode != 0:
+        raise RuntimeError(f"IntaRNA failed with return code {result.returncode}: {result.stderr}")
 
-    # output
     if outMode == "C":
-        if out_file is None:
-            df = pd.read_csv(StringIO(cp.stdout), sep=";", comment="#")
+        if out_file:
+            return pd.read_csv(out_file, sep=";", comment="#")
         else:
-            df = pd.read_csv(out_file, sep=";", comment="#")
-        return df
+            return pd.read_csv(StringIO(result.stdout), sep=";", comment="#")
     else:
-        if out_file is None:
-            return cp.stdout
-        else:
-            with open(out_file, "r") as out_handle:
-                intarna_output = out_handle.read()
-            return intarna_output
+        if out_file:
+            with open(out_file, "r") as file:
+                return file.read()
+        return result.stdout
