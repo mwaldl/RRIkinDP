@@ -45,26 +45,27 @@ def get_RRI_string_representations(
         str: Multi-line string representation of the interaction.
 
     Notes:
-        Within the three line string representation, the first and third line
-        repesenting the seqeunce of the two pairing RNAs within the
-        interaction site. The sequences contain gaps such that the paring
-        positions are aligned. The sequence directions are annotated with 5'
-        and 3'. The subsequence is annotated after the sequence id by the
-        (one based) index of the first and last nucleotide within the
-        interaction site. Base pairs are marked by pipes in the
-        corresponding positions within the second line. Interior loops and
-        buldges within the interaction site correspond to spaces within the
-        second line.
+        The three-line string representation depicts the interaction between
+        two RNAs within the interaction site. 
+        - **First and Third Lines:** Represent the sequences of the two pairing
+            RNAs, aligned with gaps to ensure pairing positions are properly matched. 
+        - **Direction Annotation:** Sequence directions are explicitly marked with 5' and 3'. 
+        - **Subsequence Annotation:** The indices of the first and last 
+            nucleotides within the interaction site are provided in parentheses
+            after the respective sequence IDs. These indices are 1-based.
+        - **Second Line:** Displays the base pair interactions with vertical
+            pipes (`|`) at aligned positions. Spaces indicate interior loops
+            or bulges within the interaction site.
 
-    Examples (missing tailing spaces):
+        Examples:
+        
+            5'-UACGGC-3' ArcZ[50:55]
+            ||||||
+            3'-AUGUCG-5' CyaR[34:29]
 
-        5'-UACGGC-3' ArcZ[50:55]
-           ||||||
-        3'-AUGUCG-5' CyaR[34:29]
-
-        5'-GAUUUCCUGGUGUAACGAAUUUUUUAAGUGC-3' DsrA[10:40]
-           ||||||||  |||||||||||||  ||||||
-        3'-CUAAAGGGGAACAUUGCUUAAAGU-UUUACG-5' rpoS[104:75]
+            5'-GAUUUCCUGGUGUAACGAAUUUUUUAAGUGC-3' DsrA[10:40]
+            ||||||||  |||||||||||||  ||||||
+            3'-CUAAAGGGGAACAUUGCUUAAAGU-UUUACG-5' rpoS[104:75]
     """
 
     # introduce gaps such that pairing sequence positions are aligned
