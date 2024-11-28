@@ -113,12 +113,13 @@ def get_RRI_string_representations(
 def run_intarna(
     seq1: str,
     seq2: str,
-    id1: Optional[str] = "target",
-    id2: Optional[str] = "query",
+    id1: str = "target",
+    id2: str = "query",
     temperature: float = 37.0,
     intarna_args: Optional[List[str]] = None,
     out_file: Optional[str] = None,
     intarna_executable: str = "IntaRNA",
+    threads: int = 1,
     outMode: str = "C",
     outCsvCols: str = "id1,id2,start1,end1,start2,end2,seq1,seq2,bpList,E,Etotal,"
                       "ED1,ED2,Pu1,Pu2,E_init,E_loops,E_dangleL,E_dangleR,E_endL,"
@@ -144,7 +145,7 @@ def run_intarna(
 
     Notes:
         If `seq1` or `seq2` is a valid file path, it will be used directly as a FASTA file.
-        Otherwise, they are treated as RNA sequences, and IDs are required or defaulted to "Seq1" and "Seq2".
+        Otherwise, they are treated as RNA sequences, and IDs are required or defaulted to "target" and "query".
     """
 
     if intarna_args is None:
@@ -173,6 +174,7 @@ def run_intarna(
         "--temperature", str(temperature),
         "--outMode", outMode,
         "--outCsvCols="+ outCsvCols,
+        "--threads", str(threads),
     ] + intarna_args)
 
     # Add output file argument if specified
