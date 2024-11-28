@@ -113,8 +113,8 @@ def get_RRI_string_representations(
 def run_intarna(
     seq1: str,
     seq2: str,
-    id1: str = "target",
-    id2: str = "query",
+    id1: Optional[str] = "target",
+    id2: Optional[str] = "query",
     temperature: float = 37.0,
     intarna_args: Optional[List[str]] = None,
     out_file: Optional[str] = None,
@@ -128,10 +128,10 @@ def run_intarna(
     Execute IntaRNA with specified parameters.
 
     Args:
-        seq1 (str): Sequence of the first RNA.
-        seq2 (str): Sequence of the second RNA.
-        id1 (str): Identifier for the first RNA.
-        id2 (str): Identifier for the second RNA.
+        seq1 (str): RNA sequence or path to a FASTA file for the first RNA.
+        seq2 (str): RNA sequence or path to a FASTA file for the second RNA.
+        id1 (Optional[str]): Identifier for the first RNA (default: "target" for sequence input).
+        id2 (Optional[str]): Identifier for the second RNA (default: "query" for sequence input).
         temperature (float): Temperature for the interaction prediction in Celsius.
         intarna_args (Optional[List[str]]): Additional arguments for IntaRNA.
         out_file (Optional[str]): Path to save the output (if provided).
@@ -141,36 +141,55 @@ def run_intarna(
 
     Returns:
         pd.DataFrame or str: Parsed DataFrame if outMode is "C"; otherwise, raw output.
-    
+
     Notes:
-        Only tested with csv output format.
+        If `seq1` or `seq2` is a valid file path, it will be used directly as a FASTA file.
+        Otherwise, they are treated as RNA sequences, and IDs are required or defaulted to "Seq1" and "Seq2".
     """
+
     if intarna_args is None:
         intarna_args = []
 
-    args = [
-        intarna_executable,
-        "-t", seq1,
-        "-q", seq2,
-        "--tId", id1,
-        "--qId", id2,
+    # Determine if inputs are sequences or file paths
+    seq1_is_file = os.path.isfile(seq1)
+    seq2_is_file = os.path.isfile(seq2)
+
+    args = [intarna_executable]
+
+    # Handle `seq1` input
+    if seq1_is_file:
+        args.extend(["-t", seq1])
+    else:
+        args.extend(["-t", seq1, "--tId", id1])
+
+    # Handle `seq2` input
+    if seq2_is_file:
+        args.extend(["-q", seq2])
+    else:
+        args.extend(["-q", seq2, "--qId", id2])
+
+    # Add common arguments
+    args.extend([
         "--temperature", str(temperature),
         "--outMode", outMode,
         "--outCsvCols="+ outCsvCols,
-    ] + intarna_args
+    ] + intarna_args)
 
+    # Add output file argument if specified
     if out_file:
         args.extend(["--out", out_file])
 
+    # Run IntaRNA
     result = subprocess.run(
         args,
         capture_output=True,
         text=True,
-        universal_newlines=True,  # TODO: needed? pd needs stream anyway
+        #universal_newlines=True,  # TODO: needed? pandas needs stream anyway
         # stdout=subprocess.PIPE,
         # stderr=subprocess.PIPE,
     )
 
+    # Parse or return the output
     if result.returncode != 0:
         raise RuntimeError(f"IntaRNA failed with return code {result.returncode}: {result.stderr}")
 
