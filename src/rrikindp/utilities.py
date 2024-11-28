@@ -1,6 +1,6 @@
 
 
-   def intarna_to_bplist(bplist_string: str, zero_based: bool = False) -> List[Tuple[int, int]]:
+def intarna_to_bplist(bplist_string: str, zero_based: bool = False) -> List[Tuple[int, int]]:
     """
     Convert a base pair list from IntaRNA string format to a Python list.
 
@@ -24,7 +24,7 @@
     ]
 
 
-def get_string_representations(
+def get_RRI_string_representations(
     seq1: str,
     seq2: str,
     bp_list: List[Tuple[int, int]],
