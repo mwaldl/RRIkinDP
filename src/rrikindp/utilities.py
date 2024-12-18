@@ -3,7 +3,7 @@ import os
 import subprocess
 import pandas as pd
 from io import StringIO
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 
 def intarna_to_bplist(bplist_string: str, zero_based: bool = False) -> List[Tuple[int, int]]:
     """
@@ -29,7 +29,7 @@ def intarna_to_bplist(bplist_string: str, zero_based: bool = False) -> List[Tupl
     ]
 
 
-def get_RRI_string_representations(
+def get_RRI_string_representation(
     seq1: str,
     seq2: str,
     bp_list: List[Tuple[int, int]],
