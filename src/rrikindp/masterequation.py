@@ -1407,7 +1407,7 @@ if __name__ == "__main__":
         "-o",
         "--output_summary",
         help="Path to save the kinetic features to (json).",
-        type=str,)
+        type=str,
         required=True,
     )
 
