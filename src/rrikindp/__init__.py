@@ -1,7 +1,7 @@
  
 #
 # RRIkinDP
-# (C) Maria Waldl, 2023
+# (C) Maria Waldl, 2025
 #
 # This file is part of the RRIkinDP source code.
 #
@@ -11,8 +11,9 @@
 #
 
 
-from . import landscape
-from . import utilities
 from libRRIkinDP import EM, RnaSequence, Interaction
+from . import utilities
+from landscape import DPLandscape, plot_landscape
+from masterequation import States, MP
 
-__version__ = 'v0.0.2'
+__version__ = 'v0.0.3'
