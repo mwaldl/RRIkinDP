@@ -89,7 +89,7 @@ public:
     std::string
     get_structures() const;
     double
-    get_minBarrier(int , int , int) const;
+    get_minBarrier(int, int, int) const;
 
 private:
     IntaRNA::Interaction interaction_;
@@ -452,8 +452,7 @@ EM::get_structures() const {
                      structure2); // *100; // x100 to convert to deca-calories
         std::string intra_str2_mfe = structure2;
         free(structure2);
-        std::string start_intra_str = intra_str1_mfe + "&" +   intra_str2_mfe;
-
+        std::string start_intra_str = intra_str1_mfe + "&" + intra_str2_mfe;
 
         // get initial intramolecular mea structures
         // =========================================
@@ -470,13 +469,14 @@ EM::get_structures() const {
         std::string intra_str2_prob = prob_string2;
         free(prob_string1);
         free(prob_string2);
-        std::string intra_str_prob_start = intra_str1_prob + '&' + intra_str2_prob;
+        std::string intra_str_prob_start =
+            intra_str1_prob + '&' + intra_str2_prob;
 
         float mea1;
         char *mea_structure1 = vrna_MEA(vc1, 0.5, &mea1);
         float mea2;
         char *mea_structure2 = vrna_MEA(vc2, 0.5, &mea2);
-        //std::cout << mea_structure1 << "&" << mea_structure2 << std::endl;
+        // std::cout << mea_structure1 << "&" << mea_structure2 << std::endl;
         std::string intra_str1_mea = mea_structure1;
         std::string intra_str2_mea = mea_structure2;
         free(mea_structure1);
@@ -493,7 +493,7 @@ EM::get_structures() const {
         for (int i = interaction_start_2; i <= interaction_end_2; i++) {
             constraint2[i] = 'x';
         }
-        //std::cout << constraint1 << "&" << constraint2 << std::endl;
+        // std::cout << constraint1 << "&" << constraint2 << std::endl;
 
         // get constraint intramolecular mea structure
         // ===========================================
@@ -516,8 +516,8 @@ EM::get_structures() const {
         std::string intra_str2_prob_full = xprob_string2;
         free(xprob_string1);
         free(xprob_string2);
-        std::string intra_str_prob_full = intra_str1_prob_full + '&' + intra_str2_prob_full;
-
+        std::string intra_str_prob_full =
+            intra_str1_prob_full + '&' + intra_str2_prob_full;
 
         float xmea1;
         char *xmea_structure1 = vrna_MEA(vc1, 0.5, &xmea1);
@@ -530,51 +530,43 @@ EM::get_structures() const {
         free(xmea_structure1);
         free(xmea_structure2);
 
-        std::string intra_str_mea_full = intra_str1_mea_full + '&' + intra_str2_mea_full;
+        std::string intra_str_mea_full =
+            intra_str1_mea_full + '&' + intra_str2_mea_full;
 
         // get constraint intamolecular mfe structure
         // ==========================================
         double mfe_const1;
-        char *structure1_mfe = (char *)vrna_alloc(sizeof(char) * (s1_.size() + 1));
-        mfe_const1 =
-            vrna_mfe(vc1,
-                     structure1_mfe); // *100; // x100 to convert to deca-calories
+        char *structure1_mfe =
+            (char *)vrna_alloc(sizeof(char) * (s1_.size() + 1));
+        mfe_const1 = vrna_mfe(
+            vc1,
+            structure1_mfe); // *100; // x100 to convert to deca-calories
         std::string intra_str1_mfe_full = structure1_mfe;
         free(structure1_mfe);
 
         double mfe_const2;
-        char *structure2_mfe = (char *)vrna_alloc(sizeof(char) * (s2_.size() + 1));
-        mfe_const2 =
-            vrna_mfe(vc2,
-                     structure2_mfe); // *100; // x100 to convert to deca-calories
+        char *structure2_mfe =
+            (char *)vrna_alloc(sizeof(char) * (s2_.size() + 1));
+        mfe_const2 = vrna_mfe(
+            vc2,
+            structure2_mfe); // *100; // x100 to convert to deca-calories
         std::string intra_str2_mfe_full = structure2_mfe;
         free(structure2_mfe);
 
-        std::string intra_str_mfe_full = intra_str1_mfe_full + '&' + intra_str2_mfe_full;
+        std::string intra_str_mfe_full =
+            intra_str1_mfe_full + '&' + intra_str2_mfe_full;
 
         // return fasta string
         // ===================
-        return faster_header + " start mfe\n" +
-            sequences + "\n" +
-            start_intra_str +"\n"  +
-            faster_header + " start mea\n" +
-            sequences + "\n" +
-            intra_str_mea_start +"\n"  +
-            faster_header + " start prob\n" +
-            sequences + "\n" +
-            intra_str_prob_start + "\n" +
-            faster_header + " full mfe\n" +
-            sequences + "\n" +
-            intra_str_mfe_full + "\n" +
-            inter_str + "\n" +
-            faster_header + " full mea\n" +
-            sequences + "\n" +
-            intra_str_mea_full + "\n" +
-            inter_str + "\n" +
-            faster_header + " full prob\n" +
-            sequences + "\n" +
-            intra_str_prob_full + "\n" +
-            inter_str + "\n";
+        return faster_header + " start mfe\n" + sequences + "\n" +
+            start_intra_str + "\n" + faster_header + " start mea\n" +
+            sequences + "\n" + intra_str_mea_start + "\n" + faster_header +
+            " start prob\n" + sequences + "\n" + intra_str_prob_start + "\n" +
+            faster_header + " full mfe\n" + sequences + "\n" +
+            intra_str_mfe_full + "\n" + inter_str + "\n" + faster_header +
+            " full mea\n" + sequences + "\n" + intra_str_mea_full + "\n" +
+            inter_str + "\n" + faster_header + " full prob\n" + sequences +
+            "\n" + intra_str_prob_full + "\n" + inter_str + "\n";
 
     } else {
         const char *structure1 = str1_.data();
@@ -614,32 +606,30 @@ EM::get_structures() const {
             "\n" + faster_header + " full\n" + sequences + "\n" + intra_str +
             "\n" + inter_str + "\n";
     }
-    }
+}
 
-    double
-    EM::get_minBarrier(int start, int len, int seed_len) const {
-        double barrier[len + 1][len + 1];
-        for (int i = start; i >= 0; i--) {
-            for (int j = start + seed_len - 1; j < len; j++) {
-                double x = d_infinity;
-                double y = d_infinity;
-                double z = d_infinity;
-                if ((start + seed_len - 1 == j) && (start == i)) {
-                    x = get_e(i, j);
-                }
-                if (i < start) {
-                    y = std::max(get_e(i, j), barrier[i + 1][j]);
-                }
-                if (j > start + seed_len - 1) {
-                    z = std::max(get_e(i, j), barrier[i][j - 1]);
-                }
-                barrier[i][j] = smallest(x, y, z);
+double
+EM::get_minBarrier(int start, int len, int seed_len) const {
+    double barrier[len + 1][len + 1];
+    for (int i = start; i >= 0; i--) {
+        for (int j = start + seed_len - 1; j < len; j++) {
+            double x = d_infinity;
+            double y = d_infinity;
+            double z = d_infinity;
+            if ((start + seed_len - 1 == j) && (start == i)) {
+                x = get_e(i, j);
             }
+            if (i < start) {
+                y = std::max(get_e(i, j), barrier[i + 1][j]);
+            }
+            if (j > start + seed_len - 1) {
+                z = std::max(get_e(i, j), barrier[i][j - 1]);
+            }
+            barrier[i][j] = smallest(x, y, z);
         }
-        return barrier[0][len - 1];
     }
-
-
+    return barrier[0][len - 1];
+}
 
 //=====================================================================================
 
@@ -709,9 +699,8 @@ main(int argc, char **argv) {
         return 0;
     }
 
-
     if (vm.count("version")) {
-        std::cout << "v0.0.1" << std::endl;
+        std::cout << "v0.0.3" << std::endl;
         return 0;
     }
 
@@ -773,14 +762,30 @@ main(int argc, char **argv) {
     // process bp_list to get Intarna pairing vector
     //===============================================
 
-    const auto pair = x3::lit('(') > x3::ulong_ > ',' > x3::ulong_ > ')';
+    // const auto pair = x3::lit('(') > x3::ulong_ > ',' > x3::ulong_ > ')';
     // const auto list = x3::lit('[') > (pair % ',') > ']';
-    const auto list = (pair % ':');
+    const auto pair =
+        x3::rule<struct pair_tag, IntaRNA::Interaction::BasePair>{} =
+            ('(' > x3::ulong_ > ',' > x3::ulong_ > ')')[([](auto &ctx) {
+                auto &attr = x3::_attr(ctx); // Extract the fusion deque
+                x3::_val(ctx) =
+                    IntaRNA::Interaction::BasePair(boost::fusion::at_c<0>(attr),
+                                                   boost::fusion::at_c<1>(
+                                                       attr));
+            })];
+
+    // Define a rule for the list of base pairs
+    const auto list = x3::rule<struct list_tag,
+                               std::vector<IntaRNA::Interaction::BasePair>>{} =
+        pair % ':';
+
     auto iter = bp_string.begin();
     auto end_iter = bp_string.end();
-    std::vector<std::pair<long unsigned int, long unsigned int>> bps_list_b1;
+    std::vector<IntaRNA::Interaction::BasePair> bps_list_b1;
     x3::parse(iter, end_iter, list, bps_list_b1);
-    std::vector<std::pair<long unsigned int, long unsigned int>> bps_list_b0;
+    std::vector<IntaRNA::Interaction::BasePair> bps_list_b0;
+
+    std::cout << bps_list_b1.size() << std::endl;
 
     std::copy(bps_list_b1.begin(), bps_list_b1.end(),
               back_inserter(bps_list_b0));
@@ -819,7 +824,6 @@ main(int argc, char **argv) {
     double full_hybrid_energy = em.get_hybride_e(0, q - 1);
     int v = q * q + q; // size of energy matrix/array
 
-
     // output structures
     // =================
 
@@ -828,8 +832,6 @@ main(int argc, char **argv) {
         structures_file_handler << em.get_structures();
     }
     // TODO: use fasta class instead
-
-
 
     // output states and their energies
     // ================================
@@ -850,8 +852,6 @@ main(int argc, char **argv) {
     if (write_states_only) {
         return 0;
     }
-
-
 
     // set up barrier tracking and output
     // ==================================
