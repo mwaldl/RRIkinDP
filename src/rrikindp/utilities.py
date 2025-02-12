@@ -1,11 +1,13 @@
-
 import os
 import subprocess
 import pandas as pd
 from io import StringIO
 from typing import List, Optional, Union, Tuple
 
-def intarna_to_bplist(bplist_string: str, zero_based: bool = False) -> List[Tuple[int, int]]:
+
+def intarna_to_bplist(
+    bplist_string: str, zero_based: bool = False
+) -> List[Tuple[int, int]]:
     """
     Convert a base pair list from IntaRNA string format to a Python list.
 
@@ -34,7 +36,7 @@ def get_RRI_string_representation(
     seq2: str,
     bp_list: List[Tuple[int, int]],
     id1: str = "Seq1",
-    id2: str = "Seq2"
+    id2: str = "Seq2",
 ) -> str:
     """
     Generate a string representation of RNA interaction, as a 3-line string.
@@ -51,11 +53,11 @@ def get_RRI_string_representation(
 
     Notes:
         The three-line string representation depicts the interaction between
-        two RNAs within the interaction site. 
+        two RNAs within the interaction site.
         - **First and Third Lines:** Represent the sequences of the two pairing
-            RNAs, aligned with gaps to ensure pairing positions are properly matched. 
-        - **Direction Annotation:** Sequence directions are explicitly marked with 5' and 3'. 
-        - **Subsequence Annotation:** The indices of the first and last 
+            RNAs, aligned with gaps to ensure pairing positions are properly matched.
+        - **Direction Annotation:** Sequence directions are explicitly marked with 5' and 3'.
+        - **Subsequence Annotation:** The indices of the first and last
             nucleotides within the interaction site are provided in parentheses
             after the respective sequence IDs. These indices are 1-based.
         - **Second Line:** Displays the base pair interactions with vertical
@@ -78,8 +80,8 @@ def get_RRI_string_representation(
     gapped_seq1, gapped_seq2, bps_as_string = "", "", ""
 
     for i in range(len(bp_list) - 1):
-        len_a_frag =  - bp_list[i][0] + bp_list[i + 1][0]
-        len_b_frag =    bp_list[i][1] - bp_list[i + 1][1]
+        len_a_frag = -bp_list[i][0] + bp_list[i + 1][0]
+        len_b_frag = bp_list[i][1] - bp_list[i + 1][1]
         fragment_length = max(len_a_frag, len_b_frag)
 
         gapped_seq1 += (
@@ -103,11 +105,13 @@ def get_RRI_string_representation(
 
     # unify length of line and return
     max_length = max(len(gapped_seq1), len(gapped_seq2))
-    return "\n".join([
-        gapped_seq1.ljust(max_length),
-        bps_as_string.ljust(max_length),
-        gapped_seq2.ljust(max_length)
-    ])
+    return "\n".join(
+        [
+            gapped_seq1.ljust(max_length),
+            bps_as_string.ljust(max_length),
+            gapped_seq2.ljust(max_length),
+        ]
+    )
 
 
 def run_intarna(
@@ -122,8 +126,8 @@ def run_intarna(
     threads: int = 1,
     outMode: str = "C",
     outCsvCols: str = "id1,id2,start1,end1,start2,end2,seq1,seq2,bpList,E,Etotal,"
-                      "ED1,ED2,Pu1,Pu2,E_init,E_loops,E_dangleL,E_dangleR,E_endL,"
-                      "E_endR,E_hybrid,E_norm,E_add,P_E,hybridDPfull"
+    "ED1,ED2,Pu1,Pu2,E_init,E_loops,E_dangleL,E_dangleR,E_endL,"
+    "E_endR,E_hybrid,E_norm,E_add,P_E,hybridDPfull",
 ) -> Union[pd.DataFrame, str]:
     """
     Execute IntaRNA with specified parameters.
@@ -170,12 +174,18 @@ def run_intarna(
         args.extend(["-q", seq2, "--qId", id2])
 
     # Add common arguments
-    args.extend([
-        "--temperature", str(temperature),
-        "--outMode", outMode,
-        "--outCsvCols="+ outCsvCols,
-        "--threads", str(threads),
-    ] + intarna_args)
+    args.extend(
+        [
+            "--temperature",
+            str(temperature),
+            "--outMode",
+            outMode,
+            "--outCsvCols=" + outCsvCols,
+            "--threads",
+            str(threads),
+        ]
+        + intarna_args
+    )
 
     # Add output file argument if specified
     if out_file:
@@ -186,14 +196,16 @@ def run_intarna(
         args,
         capture_output=True,
         text=True,
-        #universal_newlines=True,  # TODO: needed? pandas needs stream anyway
+        # universal_newlines=True,  # TODO: needed? pandas needs stream anyway
         # stdout=subprocess.PIPE,
         # stderr=subprocess.PIPE,
     )
 
     # Parse or return the output
     if result.returncode != 0:
-        raise RuntimeError(f"IntaRNA failed with return code {result.returncode}: {result.stderr}")
+        raise RuntimeError(
+            f"IntaRNA failed with return code {result.returncode}: {result.stderr}"
+        )
 
     if outMode == "C":
         if out_file:
