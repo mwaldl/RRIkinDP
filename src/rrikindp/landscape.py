@@ -3,11 +3,11 @@ import seaborn as sns
 import argparse
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-from . import rrikindp
+from libRRIkinDP import EM, RnaSequence, Interaction, BasePair
 from . import utilities
 
 
-class DPLandscape(rrikindp.EM):
+class DPLandscape(EM):
     def __init__(
         self,
         seq_a,
@@ -21,10 +21,11 @@ class DPLandscape(rrikindp.EM):
         dangles=True,
         temperature=37.0,
     ):
-        self.rna_a = rrikindp.RnaSequence(id_a, seq_a)
-        self.rna_b = rrikindp.RnaSequence(id_b, seq_b)
-        self.interaction = rrikindp.Interaction(self.rna_a, self.rna_b)
-        self.interaction.basePairs = bps
+        self.rna_a = RnaSequence(id_a, seq_a)
+        self.rna_b = RnaSequence(id_b, seq_b)
+        self.interaction = Interaction(self.rna_a, self.rna_b)
+        bp_vector = [BasePair(pair[0], pair[1]) for pair in bps]
+        self.interaction.basePairs = bp_vector
         self.interaction_length = len(bps)
         super().__init__(
             self.interaction,
@@ -60,25 +61,25 @@ class DPLandscape(rrikindp.EM):
         return seed_energies
 
     def get_seed_EDs(self, seed_length):
-        seed_unpairingE1 = [
+        seed_unpairingEDs = [
             self.get_accessibility(k, k + seed_length - 1) / 100
             for k in range(0, self.interaction_length - seed_length + 1)
         ]
-        return seed_unpairingE
+        return seed_unpairingEDs
 
     def get_seed_ED1s(self, seed_length):
-        seed_unpairingE1 = [
+        seed_unpairingED1 = [
             self.get_ED1(k, k + seed_length - 1) / 100
             for k in range(0, self.interaction_length - seed_length + 1)
         ]
-        return seed_unpairingE1
+        return seed_unpairingED1
 
     def get_seed_ED2s(self, seed_length):
-        seed_unpairingE2 = [
+        seed_unpairingED2 = [
             self.get_ED2(k, k + seed_length - 1) / 100
             for k in range(0, self.interaction_length - seed_length + 1)
         ]
-        return seed_unpairingE2
+        return seed_unpairingED2
 
     def get_min_barrier_Es(self, seed_length):
         barriers = [
@@ -439,7 +440,7 @@ if __name__ == "__main__":
     if args.remove_annotations:
         annotate = False
 
-    plot_energy_landscape(
+    plot_landscape(
         states_file,
         figure_path=figure_path,
         energy=energy,
