@@ -1,4 +1,3 @@
- 
 #
 # RRIkinDP
 # (C) Maria Waldl, 2025
@@ -16,4 +15,4 @@ from . import utilities
 from landscape import DPLandscape, plot_landscape
 from masterequation import States, MP
 
-__version__ = 'v0.0.3'
+__version__ = "v0.0.3"
