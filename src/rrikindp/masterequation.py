@@ -12,7 +12,9 @@ import struct
 # R = 1.98720425864083 * math.pow(10, -1)  # gas contant in dagcal⋅K−1⋅mol−1
 R = 1.98720425864083 * math.pow(10, -3)  # gas contant in kcal⋅K−1⋅mol−1
 T = 273.15  # 0 Celsius in K
-MIN_RATE = 10 ** (-18)  # 10 ** (-15) # depends on what float precission is used in treekin
+MIN_RATE = 10 ** (
+    -18
+)  # 10 ** (-15) # depends on what float precission is used in treekin
 DISSOCIATED_STATE_ENERGY = 0  # in dagcal⋅K−1⋅mol−1
 ASSOCIATION_FACTOR = 1000000000000
 
@@ -31,14 +33,8 @@ class State:
         self.absorbing = absorbing
         self.energy = energy
 
-    def is_full_interaction(
-        self, interaction_length
-    ):
-        if (
-            base_pair[0] == 0
-            and base_pair[1]
-            == interaction_length - 1
-        ):
+    def is_full_interaction(self, interaction_length):
+        if self.base_pair[0] == 0 and self.base_pair[1] == interaction_length - 1:
             return True
         else:
             return False
@@ -60,7 +56,7 @@ class State:
         return f"State(index={self.index}, base_pairs={self.base_pairs}, absorbing={self.absorbing}, energy={self.energy})"
 
 
-class MP:
+class MarkovProcess:
     def __init__(
         self,
         states_file,
@@ -75,9 +71,9 @@ class MP:
         (
             self._rates,
             self._states,
-        ) = generate_treekin_rates_file(
+        ) = MarkovProcess.generate_treekin_rates_file(
             states_file,
-            rate_file,
+            rates_file,
             energy_type="E",
             absorbing_states=absorbing_states,
             absorbin_full_interaction=absorbin_full_interaction,
@@ -89,7 +85,6 @@ class MP:
             one_based_state_names=True,
         )
         # TODO set up class and write class functions that use static functions
-
 
     """
     def get_states(self):
@@ -113,9 +108,7 @@ class MP:
         energy_j: free energy of second state in kcal⋅mol−1
         t: temperature in Celsius
         """
-        deltaE = (
-            max(energy_i, energy_j) - energy_i
-        )
+        deltaE = max(energy_i, energy_j) - energy_i
         rate = math.exp(-deltaE / (R * (T + t)))
         return rate
 
@@ -149,18 +142,10 @@ class MP:
     @staticmethod
     def two2oneD(k, l, interaction_length):
         """Get index of state that starts at bp k and ends at bp l."""
-        i = (
-            k + 1
-        ) * interaction_length  # all states (0:k,0:interaction_length)
-        i -= (
-            (k + 1) * k / 2
-        )  # minus all states where l<k
-        i -= (
-            interaction_length - l - 1
-        )  # minus states (k,l:interaction_length)
-        return (
-            int(i) - 1
-        )  # -1 to get zero based index
+        i = (k + 1) * interaction_length  # all states (0:k,0:interaction_length)
+        i -= (k + 1) * k / 2  # minus all states where l<k
+        i -= interaction_length - l - 1  # minus states (k,l:interaction_length)
+        return int(i) - 1  # -1 to get zero based index
 
     @staticmethod
     def generate_treekin_rates_file(
@@ -263,14 +248,8 @@ class MP:
         """
 
         # throw exception if text base rate file is used association scaling factor is not compatible with non-binary rate files.
-        if (
-            not binary
-            and absorbing_dissociated_state
-        ):
-            if (
-                association_scaling_factor
-                > 1 / MIN_RATE
-            ):
+        if not binary and absorbing_dissociated_state:
+            if association_scaling_factor > 1 / MIN_RATE:
                 raise Exception(
                     "Association rates are to small to be saved in non binary rates file."
                     + " Please use a smaller association scaling factor or binary rate file."
@@ -284,17 +263,14 @@ class MP:
 
         # Warning on absorbing state rates
         if (not binary) and (
-            MP.get_rate(
-                0, energy_penalty_absorbing_state
-            )
-            < min_rate
+            MarkovProcess.get_rate(0, energy_penalty_absorbing_state) < min_rate
         ):
             raise Exception(
                 "The set energy penalty for absorbing states  leads to small rates that"
                 + " can not be represented in non binary rate file. "
                 + "The current energy penalty "
                 + f"is {energy_penalty_absorbing_state} kcal/mol, corresponding "
-                + f"to a rate of {MP.get_rate(0,energy_penalty_absorbing_state)}.\n"
+                + f"to a rate of {MarkovProcess.get_rate(0,energy_penalty_absorbing_state)}.\n"
                 + "Recomended energy penalties for absorbing states when using "
                 + "non binary rate files are <= 10kcal/mol."
             )
@@ -307,33 +283,20 @@ class MP:
             i = 0
             for line in f:
                 if i == 0:
-                    lables = line.strip().split(
-                        "\t"
-                    )
-                    index_e = lables.index(
-                        energy_type
-                    )
+                    lables = line.strip().split("\t")
+                    index_e = lables.index(energy_type)
                     index_i = lables.index("k")
                     index_j = lables.index("l")
                 else:
-                    data = line.strip().split(
-                        "\t"
-                    )
+                    data = line.strip().split("\t")
                     states.append(
                         State(
                             index=i - 1,
                             base_pairs=(
-                                int(
-                                    data[index_i]
-                                ),
-                                int(
-                                    data[index_j]
-                                ),
+                                int(data[index_i]),
+                                int(data[index_j]),
                             ),
-                            energy=float(
-                                data[index_e]
-                            )
-                            / 100,
+                            energy=float(data[index_e]) / 100,
                             absorbing=False,
                         )
                     )
@@ -343,50 +306,29 @@ class MP:
                             int(data[index_j]),
                         )
                     ] = {
-                        "energy": float(
-                            data[index_e]
-                        )
-                        / 100,
+                        "energy": float(data[index_e]) / 100,
                         "index": i - 1,
                     }
-                    if (
-                        int(data[index_j])
-                        > interaction_length
-                    ):
-                        interaction_length = int(
-                            data[index_j]
-                        )
+                    if int(data[index_j]) > interaction_length:
+                        interaction_length = int(data[index_j])
                 i = i + 1
         interaction_length += 1
-        energies = [
-            state.energy for state in states
-        ]
+        energies = [state.energy for state in states]
 
         # set up absorbing state
         ## convert to index based
         absorbing_states = [
-            states_dict[state[0], state[1]][
-                "index"
-            ]
-            for state in absorbing_states
+            states_dict[state[0], state[1]]["index"] for state in absorbing_states
         ]
 
         ## add absorbing full interaction
         if absorbin_full_interaction:
-            absorbing_states.append(
-                states_dict[
-                    0, interaction_length - 1
-                ]["index"]
-            )
-        absorbing_states = list(
-            set(absorbing_states)
-        )
+            absorbing_states.append(states_dict[0, interaction_length - 1]["index"])
+        absorbing_states = list(set(absorbing_states))
         absorbing_states.sort()
 
         # count states
-        number_of_states = len(states) + len(
-            absorbing_states
-        )
+        number_of_states = len(states) + len(absorbing_states)
 
         if dissociation_at is not None:
             number_of_states += 1
@@ -400,9 +342,7 @@ class MP:
         for k in range(len(states)):
             row = [0.0] * (len(states))
 
-            current_i, current_j = states[
-                k
-            ].base_pairs
+            current_i, current_j = states[k].base_pairs
 
             connected_states_ij = [
                 (current_i, current_j - 1),
@@ -416,10 +356,8 @@ class MP:
                 if state in states_dict.keys()
             ]
             for l in connected_states:
-                row[l] = MP.check_rate(
-                    MP.get_rate(
-                        energies[k], energies[l]
-                    ),
+                row[l] = MarkovProcess.check_rate(
+                    MarkovProcess.get_rate(energies[k], energies[l]),
                     (
                         states[k].name(),
                         states[l].name(),
@@ -431,12 +369,9 @@ class MP:
             ## add column entries for dissociated state
             if dissociation_at is not None:
                 col_entry = 0.0
-                if (
-                    current_j - current_i
-                    < dissociation_at
-                ):
-                    col_entry = MP.check_rate(
-                        MP.get_rate(
+                if current_j - current_i < dissociation_at:
+                    col_entry = MarkovProcess.check_rate(
+                        MarkovProcess.get_rate(
                             energies[k],
                             DISSOCIATED_STATE_ENERGY,
                         ),
@@ -450,21 +385,14 @@ class MP:
                 row.append(col_entry)
 
             ## add absorbing states column entries
-            rates_to_absorbing = [0.0] * len(
-                absorbing_states
-            )
+            rates_to_absorbing = [0.0] * len(absorbing_states)
             if k in absorbing_states:
 
-                index_absorbing = (
-                    absorbing_states.index(k)
-                )
-                rates_to_absorbing[
-                    index_absorbing
-                ] = MP.check_rate(
-                    MP.get_rate(
+                index_absorbing = absorbing_states.index(k)
+                rates_to_absorbing[index_absorbing] = MarkovProcess.check_rate(
+                    MarkovProcess.get_rate(
                         energies[k],
-                        energies[k]
-                        - energy_penalty_absorbing_state,
+                        energies[k] - energy_penalty_absorbing_state,
                     ),
                     (
                         states[k].name(),
@@ -489,19 +417,15 @@ class MP:
             )
             row = [0.0] * (len(states))
             for i in range(interaction_length):
-                for j in range(
-                    i, i + dissociation_at
-                ):
+                for j in range(i, i + dissociation_at):
                     if j >= interaction_length:
                         continue
-                    k = states_dict[(i, j)][
-                        "index"
-                    ]
+                    k = states_dict[(i, j)]["index"]
                     association_scaling = 1
                     if absorbing_dissociated_state:
                         association_scaling = association_scaling_factor
-                    row[k] = MP.check_rate(
-                        MP.get_rate(
+                    row[k] = MarkovProcess.check_rate(
+                        MarkovProcess.get_rate(
                             DISSOCIATED_STATE_ENERGY,
                             states[k].energy,
                         )
@@ -522,19 +446,15 @@ class MP:
             states.append(
                 State(
                     index=len(states),
-                    base_pairs=states[
-                        a
-                    ].base_pairs,
-                    energy=states[a].energy
-                    - energy_penalty_absorbing_state,
+                    base_pairs=states[a].base_pairs,
+                    energy=states[a].energy - energy_penalty_absorbing_state,
                     absorbing=True,
                 )
             )
             row = [0.0] * number_of_states
-            row[a] = MP.check_rate(
-                MP.get_rate(
-                    states[a].energy
-                    - energy_penalty_absorbing_state,
+            row[a] = MarkovProcess.check_rate(
+                MarkovProcess.get_rate(
+                    states[a].energy - energy_penalty_absorbing_state,
                     states[a].energy,
                 ),
                 ("absorbing_state", a),
@@ -547,45 +467,27 @@ class MP:
         if binary:
             # transpose matrix
             t_matrix = [
-                [
-                    matrix[j][i]
-                    for j in range(len(matrix))
-                ]
+                [matrix[j][i] for j in range(len(matrix))]
                 for i in range(len(matrix[0]))
             ]
             out = open(rate_file, "w+b")
-            out.write(
-                struct.pack(
-                    "<i", number_of_states
-                )
-            )
+            out.write(struct.pack("<i", number_of_states))
             for row in t_matrix:
                 for e in row:
-                    out.write(
-                        struct.pack("<d", e)
-                    )
+                    out.write(struct.pack("<d", e))
             out.close()
         else:
             out = open(rate_file, "w")
             for row in matrix:
                 for e in row:
-                    out.write(
-                        MP.format_rates(e) + " "
-                    )
+                    out.write(MarkovProcess.format_rates(e) + " ")
                 out.write("\n")
             out.close()
 
         # generate and save state names
-        state_names = [
-            state.name(
-                one_based=one_based_state_names
-            )
-            for state in states
-        ]
+        state_names = [state.name(one_based=one_based_state_names) for state in states]
         if state_names_file is not None:
-            with open(
-                state_names_file, "w"
-            ) as json_file:
+            with open(state_names_file, "w") as json_file:
                 json.dump(state_names, json_file)
 
         return matrix, states
@@ -611,7 +513,7 @@ class MP:
         ----------
         rate_file : str
             Path to the rates input file in the specified format (binary or plain text).
-        start_state : list of lists, [[state1, state1_prob], [state2, state2_prob], ...]
+        initial_distribution : list of lists, [[state1, state1_prob], [state2, state2_prob], ...]
             Initial state distribution.
         binary : bool, optional
             If True, the rates input file is in binary format, which offers higher precision (default is True).
@@ -681,17 +583,12 @@ class MP:
             stderr_data,
         ) = treekin_process.communicate()
         stderr_data = stderr_data.decode()
-        treekin_output = StringIO(
-            stdout_data.decode()
-        )
+        treekin_output = StringIO(stdout_data.decode())
 
         if write_treekin_output_files:
-            with open(
-                treekin_output_file, "w"
-            ) as out_handle:
-                out_handle.write(
-                    treekin_output.read()
-                )
+            if treekin_output_file is not None:
+                with open(treekin_output_file, "w") as out_handle:
+                    out_handle.write(treekin_output.read())
 
         if verbose:
             print(stderr_data)
@@ -714,15 +611,13 @@ class MP:
             [
                 int(state.base_pairs[1])
                 for state in states
-                if type(state.base_pairs[1])
-                in [int, float]
+                if type(state.base_pairs[1]) in [int, float]
             ]
         )
         full_state = [
             state
             for state in states
-            if state.base_pairs == (0, max_bp)
-            and state.absorbing == False
+            if state.base_pairs == (0, max_bp) and state.absorbing == False
         ][0]
         return full_state
 
@@ -738,35 +633,44 @@ class MP:
         eval_sum_absorbing=False,
     ):
         """
-        Extract kinetic features from the Treekin output, including the times to reach specific population thresholds and state populations at key time points.
+        Extract kinetic features from the Treekin output, including the times to
+        reach specific population thresholds and state populations at key time points.
 
         Parameters
         ----------
         treekin_out_file : str
-            Path to the Treekin output file containing population data for each state over time.
+            Path to the Treekin output file containing population data for each state
+            over time.
         states : list of States
             List of State corresponding to the columns in the Treekin output file.
         target_states : list of str, optional
-            List of states (identified by name) to evaluate. Defaults to an empty list, which evaluates no specific states.
+            List of states (identified by name) to evaluate. Defaults to an empty list,
+            which evaluates no specific states.
         features_json : str or None, optional
-            Path to save the resulting features dictionary in JSON format. If None, no JSON file is saved.
+            Path to save the resulting features dictionary in JSON format. If None, no
+            JSON file is saved.
         eval_full_interaction : bool, optional
-            If True, includes the state representing the full interaction for analysis. Default is False.
+            If True, includes the state representing the full interaction for analysis.
+            Default is False.
         eval_dissociated_state : bool, optional
             If True, includes the dissociated state for evaluation. Default is False.
         eval_sum_absorbing : bool, optional
-            If True, includes the sum of all dissociated states for evaluation. Default is False.
+            If True, includes the sum of all dissociated states for evaluation.
+            Default is False.
 
         Returns
         -------
         dict
-            A dictionary where each key corresponds to a feature name (e.g., `state_t99`, `state_p1E10`)
-            for each evaluated state. Values represent time points or population fractions for each feature.
+            A dictionary where each key corresponds to a feature
+            name (e.g., `state_t99`, `state_p1E10`)for each evaluated state. Values
+            represent time points or population fractions for each feature.
 
         Notes
         -----
-        - The function identifies specific time points when the population for each state reaches 50% and 99% (`_t50` and `_t99`).
-        - Population fractions at fixed time points are also extracted (`_p1E10`, `_p1E5`, etc.).
+        - The function identifies specific time points when the population for each
+          state reaches 50% and 99% (`_t50` and `_t99`).
+        - Population fractions at fixed time points are also
+          extracted (`_p1E10`, `_p1E5`, etc.).
         - If `features_json` is provided, results are saved as a JSON file.
 
         Example
@@ -787,17 +691,13 @@ class MP:
         - Make time points and population fractions into parameters.
         """
 
-        state_names = [
-            state.name() for state in states
-        ]
+        state_names = [state.name() for state in states]
 
         df = pd.read_csv(
             treekin_out_file,
             # index_col=0,
             header=None,
-            names=["time"]
-            + state_names
-            + ["empty"],
+            names=["time"] + state_names + ["empty"],
             sep=" ",
             comment="#",
         )
@@ -809,34 +709,15 @@ class MP:
 
         if eval_full_interaction:
             target_states.append("s:f:f")
-            full_state = (
-                MP.get_full_interaction_state(
-                    states
-                )
-            )
+            full_state = MarkovProcess.get_full_interaction_state(states)
             df["s:f:f"] = df[full_state.name()]
-            if (
-                full_state.name().replace(
-                    "s", "a"
-                )
-                in state_names
-            ):
+            if full_state.name().replace("s", "a") in state_names:
                 target_states.append("a:f:f")
-                df["a:f:f"] = df[
-                    full_state.name().replace(
-                        "s", "a"
-                    )
-                ]
+                df["a:f:f"] = df[full_state.name().replace("s", "a")]
 
         if eval_sum_absorbing:
-            absorbing_states = [
-                state.name()
-                for state in states
-                if state.absorbing
-            ]
-            df["a:a:a"] = df[
-                absorbing_states
-            ].sum(axis=1)
+            absorbing_states = [state.name() for state in states if state.absorbing]
+            df["a:a:a"] = df[absorbing_states].sum(axis=1)
             target_states.append("a:a:a")
 
         target_states = list(set(target_states))
@@ -863,75 +744,31 @@ class MP:
             if probs[-1] < 0.99:
                 data_dict[f"{state}_t99"] = "nan"
             else:
-                step_99_absorbed = next(
-                    x
-                    for x, val in enumerate(probs)
-                    if val > 0.99
-                )
-                data_dict[f"{state}_t99"] = times[
-                    step_99_absorbed
-                ]
+                step_99_absorbed = next(x for x, val in enumerate(probs) if val > 0.99)
+                data_dict[f"{state}_t99"] = times[step_99_absorbed]
 
             # get time point at which >= 50 percent of population are in the state the first time
             if probs[-1] < 0.50:
                 data_dict[f"{state}_t50"] = "nan"
             else:
-                step_50_absorbed = next(
-                    x
-                    for x, val in enumerate(probs)
-                    if val > 0.50
-                )
-                data_dict[f"{state}_t50"] = times[
-                    step_50_absorbed
-                ]
+                step_50_absorbed = next(x for x, val in enumerate(probs) if val > 0.50)
+                data_dict[f"{state}_t50"] = times[step_50_absorbed]
 
             # get the population fraction (state probability) at the given time points
-            step_1E8 = next(
-                x
-                for x, val in enumerate(times)
-                if val >= 100000000
-            )
-            step_1E5 = next(
-                x
-                for x, val in enumerate(times)
-                if val > 100000
-            )
-            step_1E3 = next(
-                x
-                for x, val in enumerate(times)
-                if val > 1000
-            )
-            step_1E2 = next(
-                x
-                for x, val in enumerate(times)
-                if val > 100
-            )
-            step_1E1 = next(
-                x
-                for x, val in enumerate(times)
-                if val > 10
-            )
-            data_dict[f"{state}_p1E8"] = probs[
-                step_1E8
-            ]
-            data_dict[f"{state}_p1E5"] = probs[
-                step_1E5
-            ]
-            data_dict[f"{state}_p1E3"] = probs[
-                step_1E3
-            ]
-            data_dict[f"{state}_p1E2"] = probs[
-                step_1E2
-            ]
-            data_dict[f"{state}_p1E1"] = probs[
-                step_1E1
-            ]
+            step_1E8 = next(x for x, val in enumerate(times) if val >= 100000000)
+            step_1E5 = next(x for x, val in enumerate(times) if val > 100000)
+            step_1E3 = next(x for x, val in enumerate(times) if val > 1000)
+            step_1E2 = next(x for x, val in enumerate(times) if val > 100)
+            step_1E1 = next(x for x, val in enumerate(times) if val > 10)
+            data_dict[f"{state}_p1E8"] = probs[step_1E8]
+            data_dict[f"{state}_p1E5"] = probs[step_1E5]
+            data_dict[f"{state}_p1E3"] = probs[step_1E3]
+            data_dict[f"{state}_p1E2"] = probs[step_1E2]
+            data_dict[f"{state}_p1E1"] = probs[step_1E1]
 
         # save features
         if features_json is not None:
-            with open(
-                features_json, "w"
-            ) as json_file:
+            with open(features_json, "w") as json_file:
                 json.dump(data_dict, json_file)
 
         return data_dict
@@ -948,9 +785,7 @@ class MP:
         enable_tex_fonts=True,
     ):
 
-        times, energies = MP.get_E_mean(
-            treekin_out_file, states
-        )
+        times, energies = MarkovProcess.get_E_mean(treekin_out_file, states)
 
         # set up fonts
         font_family = "sans-serif"
@@ -973,9 +808,7 @@ class MP:
         plt.rcParams.update(font_params)
 
         # set figure size
-        f, ax = plt.subplots(
-            figsize=figsize, layout="constrained"
-        )
+        f, ax = plt.subplots(figsize=figsize, layout="constrained")
 
         # set axis labels
         if enable_tex_fonts:
@@ -1001,52 +834,36 @@ class MP:
 
         # save figure
         if figure_path is not None:
-            f.savefig(
-                figure_path, bbox_inches="tight"
-            )
+            f.savefig(figure_path, bbox_inches="tight")
 
     @staticmethod
     def get_E_mean(
         treekin_out_file,
         states,
     ):
-        state_names = [
-            state.name() for state in states
-        ]
+        state_names = [state.name() for state in states]
         df = pd.read_csv(
             treekin_out_file,
             index_col=0,
             header=None,
-            names=["time"]
-            + state_names
-            + ["empty"],
+            names=["time"] + state_names + ["empty"],
             sep=" ",
             comment="#",
         )
         df.drop(columns=["empty"], inplace=True)
         for state in states:
-            if (
-                state.absorbing
-                and state.name() != "a:d:d"
-            ):
+            if state.absorbing and state.name() != "a:d:d":
                 non_absorbing_state = [
                     na_state
                     for na_state in states
                     if (
-                        na_state.base_pairs
-                        == state.base_pairs
-                        and na_state.absorbing
-                        == False
+                        na_state.base_pairs == state.base_pairs
+                        and na_state.absorbing == False
                     )
                 ][0]
-                df[state.name()] = df[
-                    state.name()
-                ] * (non_absorbing_state.energy)
+                df[state.name()] = df[state.name()] * (non_absorbing_state.energy)
             else:
-                df[state.name()] = (
-                    df[state.name()]
-                    * state.energy
-                )
+                df[state.name()] = df[state.name()] * state.energy
         df = df.copy()  # for defragmentation
         df["E_mean"] = df.sum(axis=1)
         # f, ax = plt.subplots(figsize=(40,40), layout="constrained")
@@ -1072,24 +889,16 @@ class MP:
             100000000,
         ],
     ):
-        times, energies = MP.get_E_mean(
-            treekin_out_file, states
-        )
+        times, energies = MarkovProcess.get_E_mean(treekin_out_file, states)
         features = {}
         for time in eval_times:
             if time > times[-1]:
-                features[
-                    f"E_mean({time:.0E})"
-                ] = "nan"
+                features[f"E_mean({time:.0E})"] = "nan"
             else:
                 time_index = next(
-                    i
-                    for i, val in enumerate(times)
-                    if val >= float(time)
+                    i for i, val in enumerate(times) if val >= float(time)
                 )
-                features[
-                    f"E_mean({time:.1E})"
-                ] = energies[time_index]
+                features[f"E_mean({time:.1E})"] = energies[time_index]
         return features
 
     @staticmethod
@@ -1150,15 +959,18 @@ class MP:
 
         Todo
         ----
-        - Consider adding labels as text annotations instead of markers for improved readability.
-        - Evaluate using external libraries like `matplotlib-label-lines` to automate label positioning.
+        - Consider adding labels as text annotations instead of markers for improved
+          readability.
+        - Evaluate using external libraries like `matplotlib-label-lines` to automate
+          label positioning.
 
         Notes
         -----
-        - **Logarithmic Time Axis**: The x-axis is displayed on a logarithmic scale to capture
-        population dynamics over time.
-        - **Labeling States**: If `labels` is enabled, states with populations that peak above
-        `label_cutoff_fraction` are labeled on the plot. Absorbing states are marked with a
+        - **Logarithmic Time Axis**: The x-axis is displayed on a logarithmic scale to
+          capture population dynamics over time.
+        - **Labeling States**: If `labels` is enabled, states with populations that
+          peak above `label_cutoff_fraction` are labeled on the plot. Absorbing states
+          are marked with a
         distinct edge color (gray), and state names are derived from `state_names` if provided.
         - **File Format**: The plot's file format is determined by the file extension of
         `treekin_plot`. Ensure the extension matches the desired format (e.g., `.png`, `.pdf`).
@@ -1202,10 +1014,7 @@ class MP:
         # read treekin output file
         if states is not None:
             state_names = [
-                state.name(
-                    one_based=one_based_state_names
-                )
-                for state in states
+                state.name(one_based=one_based_state_names) for state in states
             ]
             df = pd.read_csv(
                 treekin_output,
@@ -1225,14 +1034,10 @@ class MP:
                 comment="#",
             )
 
-        df = df.iloc[
-            :, :-1
-        ]  # remove empty column (tailing spaces in input)
+        df = df.iloc[:, :-1]  # remove empty column (tailing spaces in input)
 
         # set figure size
-        f, ax = plt.subplots(
-            figsize=figsize, layout="constrained"
-        )
+        f, ax = plt.subplots(figsize=figsize, layout="constrained")
 
         # set axis labels
         ax.set_ylabel("Population")
@@ -1270,14 +1075,9 @@ class MP:
                 continue
 
             # check if state passes population cutoff to get labled
-            if (
-                max_population
-                < label_cutoff_fraction
-            ):
+            if max_population < label_cutoff_fraction:
                 continue
-            max_population_time = df[
-                [col]
-            ].idxmax()
+            max_population_time = df[[col]].idxmax()
 
             # set label position at max_population
             # marker_y = max_population
@@ -1285,18 +1085,10 @@ class MP:
 
             # reset marker y  coordinates if outside or close to y-limits
             if marker_x < min_x_label:
-                marker_x = next(
-                    t
-                    for t in df.index.to_list()
-                    if t > min_x_label
-                )
+                marker_x = next(t for t in df.index.to_list() if t > min_x_label)
             elif marker_x > max_x_label:
                 marker_x = next(
-                    t
-                    for t in reversed(
-                        df.index.to_list()
-                    )
-                    if t < max_x_label
+                    t for t in reversed(df.index.to_list()) if t < max_x_label
                 )
             marker_y = df.at[marker_x, col]
 
@@ -1353,9 +1145,7 @@ class MP:
             ax.set_title(title)
 
         # save figure
-        f.savefig(
-            treekin_plot, bbox_inches="tight"
-        )
+        f.savefig(treekin_plot, bbox_inches="tight")
         plt.close(f)
 
 
@@ -1377,9 +1167,7 @@ if __name__ == "__main__":
         "-i",
         "--initial",
         help="Initial state with 100% population in the simulation defined by index of first and last base pair e.g., '-i 2:4' (zero based indices).",
-        type=lambda x: tuple(
-            map(int, x.split(":"))
-        ),
+        type=lambda x: tuple(map(int, x.split(":"))),
         required=True,
     )
     parser.add_argument(
@@ -1415,10 +1203,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--absorbing_states",
         help="List of absorbing states in base pair format, i.e. represented by the zero based index of there first and last base pair. Example: '14:17 5:7, 0:6'.",
-        type=lambda s: [
-            tuple(map(int, state.split(":")))
-            for state in s.split()
-        ],
+        type=lambda s: [tuple(map(int, state.split(":"))) for state in s.split()],
         default=[],
     )
     parser.add_argument(
@@ -1481,9 +1266,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target_states",
         help="Additional states that should be included in the kinetic features summary, in addition to the full interaction and dissaociated state. Example: '0:3,6:12'.",
-        type=lambda x: list(
-            map(int, x.split(","))
-        ),
+        type=lambda x: list(map(int, x.split(","))),
         default=[],
     )
 
@@ -1502,9 +1285,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--figsize",
         help="Size of the plot in inches, e.g., '--figsize 7 4'.",
-        type=lambda x: tuple(
-            map(float, x.split())
-        ),
+        type=lambda x: tuple(map(float, x.split())),
         default=(7, 4),
     )
     parser.add_argument(
@@ -1512,9 +1293,7 @@ if __name__ == "__main__":
         help="Plot range on x-axis as a tuple. (default: None, None).",
         type=lambda x: tuple(
             map(
-                lambda v: None
-                if v == None
-                else float(v),
+                lambda v: None if v == None else float(v),
                 x.split(),
             )
         ),
@@ -1523,9 +1302,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--plot_y_lim",
         help="Plot range on y-axis as a tuple (default: -0.05 1.05).",
-        type=lambda x: tuple(
-            map(float, x.split())
-        ),
+        type=lambda x: tuple(map(float, x.split())),
         default=(-0.05, 1.05),
     )
 
@@ -1555,17 +1332,13 @@ if __name__ == "__main__":
         absorbing_dissociated_state = False
 
     # Catch to large absorbing state penalties when using non binary rate files
-    if (
-        not binary
-        and args.energy_penalty_absorbing_state
-        > 10
-    ):
+    if not binary and args.energy_penalty_absorbing_state > 10:
         raise Exception(
             "The set energy penalty for absorbing states  leads to small rates that"
             + " can not be represented in non binary rate file. "
             + "The current energy penalty "
             + f"is {args.energy_penalty_absorbing_state} kcal/mol, corresponding "
-            + f"to a rate of {MP.get_rate(0,args.energy_penalty_absorbing_state)}.\n"
+            + f"to a rate of {MarkovProcess.get_rate(0,args.energy_penalty_absorbing_state)}.\n"
             + "Recomended energy penalties for absorbing states when using "
             + "non binary rate files are <= 10kcal/mol."
         )
@@ -1594,7 +1367,7 @@ if __name__ == "__main__":
     (
         matrix,
         states,
-    ) = MP.generate_treekin_rates_file(
+    ) = MarkovProcess.generate_treekin_rates_file(
         states_file=args.states,
         rate_file=args.rates,
         absorbing_states=args.absorbing_states,
@@ -1609,17 +1382,15 @@ if __name__ == "__main__":
 
     # Preprocess treekin input
     ## interaction length
-    interaction_length = (
-        MP.get_interaction_length(args.states)
-    )
+    interaction_length = MarkovProcess.get_interaction_length(args.states)
     ## index of initial state
     initial_k, initial_l = args.initial
-    initial_state_index = MP.two2oneD(
+    initial_state_index = MarkovProcess.two2oneD(
         initial_k, initial_l, interaction_length
     )
 
     # Run treekin
-    MP.run_treekin(
+    MarkovProcess.run_treekin(
         rate_file=args.rates,
         initial_distribution=[
             [
@@ -1643,7 +1414,7 @@ if __name__ == "__main__":
     )
 
     # Summarize dynamic features
-    features = MP.get_treekin_features(
+    features = MarkovProcess.get_treekin_features(
         treekin_out_file=args.probs,
         states=states,
         target_states=args.target_states,
@@ -1653,20 +1424,16 @@ if __name__ == "__main__":
         eval_sum_absorbing=True,
     )
 
-    e_features = MP.get_E_mean_features(
-        args.probs, states
-    )
+    e_features = MarkovProcess.get_E_mean_features(args.probs, states)
 
-    print(
-        "Features form Markov process simulation:"
-    )
+    print("Features form Markov process simulation:")
     for key, value in features.items():
         print(f"{key}: {value}")
     for key, value in e_features.items():
         print(f"{key}: {value}")
 
     if args.E_mean_plot_path is not None:
-        MP.plot_E_mean(
+        MarkovProcess.plot_E_mean(
             args.probs,
             states,
             figure_path=args.E_mean_plot_path,
@@ -1674,7 +1441,7 @@ if __name__ == "__main__":
         )
 
     # Plot state probabilities
-    MP.plot_treekin(
+    MarkovProcess.plot_treekin(
         treekin_output=args.probs,
         treekin_plot=args.figure,
         states=states,
