@@ -175,9 +175,9 @@ class MarkovProcess:
         energy_type : str, optional
             Specifies the energy column in the states file to use (e.g., 'E', 'ED1').
             Default is 'E'.
-        absorbing_states : list of int, optional
-            List of indices representing states to which absorbing states should be attached.
-            States are identified by their index in the states file (e.g., [12, 1, 24]).
+        absorbing_states : list of States, optional
+            List of States to which absorbing states should be attached.
+            (e.g., [State(0,(0,0),False,0.8), State(1,(0,1),False,-1)]).
         absorbin_full_interaction : bool, optional
             If True, attaches an absorbing state to the full interaction without requiring
             the specific index of the full interaction state. Default is False.
@@ -730,6 +730,8 @@ class MarkovProcess:
             if state not in df.columns:
                 data_dict[f"{state}_t99"] = "nan"
                 data_dict[f"{state}_t50"] = "nan"
+                data_dict[f"{state}_logt99"] = "nan"
+                data_dict[f"{state}_logt50"] = "nan"
                 data_dict[f"{state}_p1E8"] = "nan"
                 data_dict[f"{state}_p1E5"] = "nan"
                 data_dict[f"{state}_p1E3"] = "nan"
@@ -743,16 +745,20 @@ class MarkovProcess:
             # get time point at which >= 99 percent of population are in the state the first time
             if probs[-1] < 0.99:
                 data_dict[f"{state}_t99"] = "nan"
+                data_dict[f"{state}_logt99"] = "nan"
             else:
                 step_99_absorbed = next(x for x, val in enumerate(probs) if val > 0.99)
                 data_dict[f"{state}_t99"] = times[step_99_absorbed]
+                data_dict[f"{state}_logt99"] = math.log10(times[step_99_absorbed])
 
             # get time point at which >= 50 percent of population are in the state the first time
             if probs[-1] < 0.50:
                 data_dict[f"{state}_t50"] = "nan"
+                data_dict[f"{state}_logt50"] = "nan"
             else:
                 step_50_absorbed = next(x for x, val in enumerate(probs) if val > 0.50)
                 data_dict[f"{state}_t50"] = times[step_50_absorbed]
+                data_dict[f"{state}_logt50"] = math.log10(times[step_50_absorbed])
 
             # get the population fraction (state probability) at the given time points
             step_1E8 = next(x for x, val in enumerate(times) if val >= 100000000)
