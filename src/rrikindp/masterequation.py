@@ -726,6 +726,7 @@ class MarkovProcess:
 
         data_dict = {}
         for state in target_states:
+
             # if state does not exist return nan
             if state not in df.columns:
                 data_dict[f"{state}_t99"] = "nan"
@@ -747,7 +748,7 @@ class MarkovProcess:
                 data_dict[f"{state}_t99"] = "nan"
                 data_dict[f"{state}_logt99"] = "nan"
             else:
-                step_99_absorbed = next(x for x, val in enumerate(probs) if val > 0.99)
+                step_99_absorbed = next(x for x, val in enumerate(probs) if val >= 0.99)
                 data_dict[f"{state}_t99"] = times[step_99_absorbed]
                 data_dict[f"{state}_logt99"] = math.log10(times[step_99_absorbed])
 
@@ -756,7 +757,7 @@ class MarkovProcess:
                 data_dict[f"{state}_t50"] = "nan"
                 data_dict[f"{state}_logt50"] = "nan"
             else:
-                step_50_absorbed = next(x for x, val in enumerate(probs) if val > 0.50)
+                step_50_absorbed = next(x for x, val in enumerate(probs) if val >= 0.50)
                 data_dict[f"{state}_t50"] = times[step_50_absorbed]
                 data_dict[f"{state}_logt50"] = math.log10(times[step_50_absorbed])
 
