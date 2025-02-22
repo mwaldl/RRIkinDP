@@ -497,6 +497,7 @@ class MarkovProcess:
         rate_file,
         initial_distribution,
         binary=True,
+        precision="DD",  # "DOUBLE", "LD",  "DD",  "QD"
         treekin_executable="treekin",
         write_treekin_output_files=True,
         treekin_output_file=None,
@@ -555,7 +556,7 @@ class MarkovProcess:
                 ]
             ),
             "--mlapack-method",
-            "DD",
+            precision,  # DD
             "-T",
             f"{temperature}",
             "--tinc",
@@ -564,7 +565,7 @@ class MarkovProcess:
             f"{sim_start_time}",
             "--t8",
             f"{sim_end_time}",
-            # "MPFR",  # "LD", "QD",  "DD", "DOUBLE", "GMP", "MPFR", "FLOAT128"
+            # "DOUBLE", "LD",  "DD",  "QD", , "GMP", "MPFR", "FLOAT128"
             # "--mlapack-precision",  # necessary if "GMP", "MPFR"
             # "128",
         ]
@@ -591,6 +592,11 @@ class MarkovProcess:
                     out_handle.write(treekin_output.read())
 
         if verbose:
+            with open(
+                "/home/maria/Work/Projects/RRI/test/treekin_error.txt", "w"
+            ) as out_handle:
+                treekin_err = StringIO(stderr_data)
+                out_handle.write(treekin_err.read())
             print(stderr_data)
 
         return treekin_output
