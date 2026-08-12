@@ -75,7 +75,7 @@ public:
     double
     get_e(int, int) const;
     double
-    get_hybride_e(int, int) const;
+    get_hybrid_e(int, int) const;
     double
     get_accessibility(int, int) const;
     double
@@ -111,7 +111,7 @@ private:
     void
     set_ext_loops_e();
     void
-    set_hybride_e();
+    set_hybrid_e();
     void
     set_accessibility_pf();
     void
@@ -169,7 +169,7 @@ EM::EM(IntaRNA::Interaction input_interaction,
       dangle_(dangle) {
     set_loop_e();
     set_ext_loops_e();
-    set_hybride_e();
+    set_hybrid_e();
     if (use_pf_) {
         set_accessibility_pf();
     } else {
@@ -215,7 +215,7 @@ EM::set_ext_loops_e() {
 }
 
 void
-EM::set_hybride_e() {
+EM::set_hybrid_e() {
     double init_e = energy_.getE_init();
 
     for (int k = 0; k < length_I_; k++) {
@@ -360,7 +360,7 @@ EM::get_e(int k, int l) const {
 }
 
 double
-EM::get_hybride_e(int k, int l) const {
+EM::get_hybrid_e(int k, int l) const {
     int index_1D = map_2D_linear(k, l, length_I_);
     return hybrid_e_[index_1D];
 }
@@ -819,7 +819,7 @@ main(int argc, char **argv) {
 
     int q = interaction.basePairs.size(); // number of base pairs in structure
     double full_energy = em.get_e(0, q - 1);
-    double full_hybrid_energy = em.get_hybride_e(0, q - 1);
+    double full_hybrid_energy = em.get_hybrid_e(0, q - 1);
     int v = q * q + q; // size of energy matrix/array
 
     // output structures
@@ -840,7 +840,7 @@ main(int argc, char **argv) {
         for (int k = 0; k < q; k++) {
             for (int l = k; l < q; l++) {
                 states_file_handler << k << "\t" << l << "\t" << em.get_e(k, l)
-                                    << "\t" << em.get_hybride_e(k, l) << "\t"
+                                    << "\t" << em.get_hybrid_e(k, l) << "\t"
                                     << em.get_ED1(k, l) << "\t"
                                     << em.get_ED2(k, l) << "\t"
                                     << em.get_accessibility(k, l) << std::endl;
@@ -890,7 +890,7 @@ main(int argc, char **argv) {
             barriers_file_handler << em.get_e(start, start + seed_len - 1)
                                   << "\t";
             barriers_file_handler
-                << em.get_hybride_e(start, start + seed_len - 1) << "\t";
+                << em.get_hybrid_e(start, start + seed_len - 1) << "\t";
             barriers_file_handler
                 << em.get_accessibility(start, start + seed_len - 1);
             barriers_file_handler
@@ -927,7 +927,7 @@ main(int argc, char **argv) {
                                       best_start_bp + seed_len - 1)
               << std::endl;
     std::cout << "|: seed hybridisation energy of lowest barrier seed: "
-              << em.get_hybride_e(best_start_bp, best_start_bp + seed_len - 1)
+              << em.get_hybrid_e(best_start_bp, best_start_bp + seed_len - 1)
               << std::endl;
     std::cout << "|: seed energy of lowest barrier seed: "
               << em.get_e(best_start_bp, best_start_bp + seed_len - 1)

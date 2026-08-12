@@ -42,7 +42,7 @@ class DPLandscape(EM):
         return self.get_e(0, self.interaction_length - 1) / 100
 
     def get_full_hybridE(self):
-        return self.get_hybride_e(0, self.interaction_length - 1) / 100
+        return self.get_hybrid_e(0, self.interaction_length - 1) / 100
 
     def get_full_ED(self):
         return self.get_accessibility(0, self.interaction_length - 1) / 100
@@ -95,7 +95,7 @@ class DPLandscape(EM):
                 energy = self.get_e(k, l) / 100
                 ed1 = self.get_ED1(k, l) / 100
                 ed2 = self.get_ED2(k, l) / 100
-                e_hybrid = self.get_hybride_e(k, l) / 100
+                e_hybrid = self.get_hybrid_e(k, l) / 100
                 states.append([k, l, energy, ed1, ed2, e_hybrid])
         return states
 
@@ -107,7 +107,7 @@ class DPLandscape(EM):
                     energy = self.get_e(k, l)
                     ed1 = self.get_ED1(k, l)
                     ed2 = self.get_ED2(k, l)
-                    e_hybrid = self.get_hybride_e(k, l)
+                    e_hybrid = self.get_hybrid_e(k, l)
                     out_file.write(f"{k}\t{l}\t{energy}\t{ed1}\t{ed2}\t{e_hybrid}\n")
 
     def get_seed_barrier_state(self, seed_length):

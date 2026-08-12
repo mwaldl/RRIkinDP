@@ -23,7 +23,7 @@ PYBIND11_MODULE(libRRIkinDP, m) {
                       const std::string &, const std::string &,
                       const std::string &, bool, bool, double>())
         .def("get_e", &EM::get_e)
-        .def("get_hybride_e", &EM::get_hybride_e)
+        .def("get_hybrid_e", &EM::get_hybrid_e)
         .def("get_accessibility", &EM::get_accessibility)
         .def("get_ED1", &EM::get_ED1)
         .def("get_ED2", &EM::get_ED2)
