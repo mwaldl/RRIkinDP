@@ -417,7 +417,7 @@ if __name__ == "__main__":
     structure = None
     if seq1 and seq2 and bp_list_str:
         bp_list = utilities.intarna_to_bplist(bp_list_str)
-        structure = utilities.get_string_representations(
+        structure = utilities.get_RRI_string_representation(
             seq1, seq2, bp_list, id1=seqId1, id2=seqId2
         )
 
