@@ -785,8 +785,6 @@ main(int argc, char **argv) {
     x3::parse(iter, end_iter, list, bps_list_b1);
     std::vector<IntaRNA::Interaction::BasePair> bps_list_b0;
 
-    std::cout << bps_list_b1.size() << std::endl;
-
     std::copy(bps_list_b1.begin(), bps_list_b1.end(),
               back_inserter(bps_list_b0));
     for (int i = 0; i < bps_list_b0.size(); i++) {
