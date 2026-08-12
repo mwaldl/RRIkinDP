@@ -62,7 +62,7 @@ class MarkovProcess:
         states_file,
         rates_file,
         absorbing_states=[],
-        absorbin_full_interaction=False,
+        absorbing_full_interaction=False,
         dissociation_at=2,
         absorbing_dissociated_state=True,
         energy_penalty_absorbing_state=19,
@@ -76,7 +76,7 @@ class MarkovProcess:
             rates_file,
             energy_type="E",
             absorbing_states=absorbing_states,
-            absorbin_full_interaction=absorbin_full_interaction,
+            absorbing_full_interaction=absorbing_full_interaction,
             dissociation_at=dissociation_at,
             absorbing_dissociated_state=absorbing_dissociated_state,
             energy_penalty_absorbing_state=energy_penalty_absorbing_state,
@@ -86,11 +86,17 @@ class MarkovProcess:
         )
         # TODO set up class and write class functions that use static functions
 
-    """
     def get_states(self):
-        #TODO
-        return states
-    """
+        """Return the states of the markov process.
+
+        The list includes the states added on setup, ie the dissociated state and
+        absorbing states, and is ordered as the rows of the rate matrix.
+        """
+        return self._states
+
+    def get_rates(self):
+        """Return the rate matrix of the markov process."""
+        return self._rates
 
     @staticmethod
     def format_rates(rate):
@@ -153,7 +159,7 @@ class MarkovProcess:
         rate_file,
         energy_type="E",
         absorbing_states=[],
-        absorbin_full_interaction=False,
+        absorbing_full_interaction=False,
         dissociation_at=2,
         absorbing_dissociated_state=True,
         association_scaling_factor=ASSOCIATION_FACTOR,
@@ -178,7 +184,7 @@ class MarkovProcess:
         absorbing_states : list of States, optional
             List of States to which absorbing states should be attached.
             (e.g., [State(0,(0,0),False,0.8), State(1,(0,1),False,-1)]).
-        absorbin_full_interaction : bool, optional
+        absorbing_full_interaction : bool, optional
             If True, attaches an absorbing state to the full interaction without requiring
             the specific index of the full interaction state. Default is False.
         dissociation_at : int or None, optional
@@ -232,7 +238,7 @@ class MarkovProcess:
             rate_file="output_rates.txt",
             energy_type="E",
             absorbing_states=[12, 1, 24],
-            absorbin_full_interaction=True,
+            absorbing_full_interaction=True,
             dissociation_at=2,
             absorbing_dissociated_state=True,
             energy_penalty_absorbing_state=15,
@@ -322,7 +328,7 @@ class MarkovProcess:
         ]
 
         ## add absorbing full interaction
-        if absorbin_full_interaction:
+        if absorbing_full_interaction:
             absorbing_states.append(states_dict[0, interaction_length - 1]["index"])
         absorbing_states = list(set(absorbing_states))
         absorbing_states.sort()
@@ -501,6 +507,7 @@ class MarkovProcess:
         treekin_executable="treekin",
         write_treekin_output_files=True,
         treekin_output_file=None,
+        treekin_error_file=None,
         time_increment=1.02,
         sim_start_time=0.1,
         sim_end_time="1E8",
@@ -524,6 +531,9 @@ class MarkovProcess:
             If True, writes the treekin output to a file specified by 'treekin_output_file' (default is True).
         treekin_output_file : str or None, optional
             Path to save the raw output from treekin. Required if 'write_treekin_output_files' is True.
+        treekin_error_file : str or None, optional
+            Path to save the error output of treekin. If None, the error output is not
+            written to a file (default is None).
         time_increment: float, optional
             Time scaling factor for logarithmic time scale (default 1.02).
         sim_start_time: float, optional
@@ -533,12 +543,13 @@ class MarkovProcess:
         temperature: float, optional
             Set the simulation temperature in Celsius to temp (default 37.0).
         verbose : bool, optional
-            If True, prints detailed output and errors from treekin execution (default is False).
+            If True, prints the error output of treekin execution (default is False).
 
         Returns
         -------
-        None
-            Executes treekin, returns treekin output and saves it to output file if specified.
+        StringIO
+            The output of treekin as in memory stream, positioned at the start. It is
+            additionally saved to 'treekin_output_file' if specified.
 
         """
 
@@ -574,7 +585,6 @@ class MarkovProcess:
 
         treekin_process = subprocess.Popen(
             treekin_args,
-            # stdin=cat_process.stdout,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -584,22 +594,23 @@ class MarkovProcess:
             stderr_data,
         ) = treekin_process.communicate()
         stderr_data = stderr_data.decode()
-        treekin_output = StringIO(stdout_data.decode())
+        stdout_data = stdout_data.decode()
 
         if write_treekin_output_files:
             if treekin_output_file is not None:
                 with open(treekin_output_file, "w") as out_handle:
-                    out_handle.write(treekin_output.read())
+                    out_handle.write(stdout_data)
+
+        if treekin_error_file is not None:
+            with open(treekin_error_file, "w") as out_handle:
+                out_handle.write(stderr_data)
 
         if verbose:
-            with open(
-                "/home/maria/Work/Projects/RRI/test/treekin_error.txt", "w"
-            ) as out_handle:
-                treekin_err = StringIO(stderr_data)
-                out_handle.write(treekin_err.read())
             print(stderr_data)
 
-        return treekin_output
+        # return a fresh stream such that the returned output can always be read,
+        # independent of whether it has been written to a file
+        return StringIO(stdout_data)
 
     @staticmethod
     # read state names from json file
@@ -825,7 +836,7 @@ class MarkovProcess:
 
         # set axis labels
         if enable_tex_fonts:
-            ax.set_ylabel("$\hat{E}$ (kcal/mol)")
+            ax.set_ylabel(r"$\hat{E}$ (kcal/mol)")
         else:
             ax.set_ylabel("E_mean (kcal/mol)")
 
@@ -1384,7 +1395,7 @@ if __name__ == "__main__":
         states_file=args.states,
         rate_file=args.rates,
         absorbing_states=args.absorbing_states,
-        absorbin_full_interaction=args.absorbing_full_interaction,
+        absorbing_full_interaction=args.absorbing_full_interaction,
         dissociation_at=args.dissociation_at,
         absorbing_dissociated_state=absorbing_dissociated_state,
         association_scaling_factor=args.association_scaling,
