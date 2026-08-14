@@ -14,4 +14,4 @@ from .landscape import DPLandscape, plot_landscape
 from .masterequation import State, MarkovProcess
 from libRRIkinDP import EM, RnaSequence, Interaction, BasePair
 
-__version__ = "v0.0.3"
+__version__ = "0.0.3"

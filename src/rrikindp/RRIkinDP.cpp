@@ -656,7 +656,7 @@ main(int argc, char **argv) {
     // read input
     // =============================
 
-    po::options_description description("DirectPaths Usage");
+    po::options_description description("RRIkinDP Usage");
 
     description.add_options()("help", "Display this help message")(
         "version", "Display the version number")(
@@ -674,9 +674,9 @@ main(int argc, char **argv) {
         "interaction base pair list as string (one based)")(
         "seed", po::value<int>()->required(),
         "seed length")("write_all_barriers", po::value<std::string>(),
-                       "file paths to write minmal barriers for all seeds to")(
+                       "file path to write minimal barriers for all seeds to")(
         "write_states", po::value<std::string>(),
-        "file paths to write states and their energies to")(
+        "file path to write states and their energies to")(
         "compute_states_only",
         "compute states and output their energies to path "
         "specified in 'write_states'")(
@@ -685,7 +685,7 @@ main(int argc, char **argv) {
         "compute accessibilities based on fixed intramolecular structures "
         "instead of based on partition function")(
         "write_structures", po::value<std::string>(),
-        "file paths to write intramolecular and fully extended intermolecular "
+        "file path to write intramolecular and fully extended intermolecular "
         "structures to")("temperature",
                          po::value<double>()->default_value(37.0),
                          "temperature in Celsius");
@@ -700,7 +700,7 @@ main(int argc, char **argv) {
     }
 
     if (vm.count("version")) {
-        std::cout << "v0.0.3" << std::endl;
+        std::cout << "0.0.3" << std::endl;
         return 0;
     }
 
