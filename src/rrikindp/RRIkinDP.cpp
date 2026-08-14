@@ -128,8 +128,8 @@ private:
     IntaRNA::AccessibilityVrna access2_;
     IntaRNA::ReverseAccessibility rev_access2_;
     IntaRNA::InteractionEnergyVrna energy_;
-    bool dangle_;
     bool use_pf_;
+    bool dangle_;
 };
 
 EM::EM(IntaRNA::Interaction input_interaction,
@@ -787,7 +787,7 @@ main(int argc, char **argv) {
 
     std::copy(bps_list_b1.begin(), bps_list_b1.end(),
               back_inserter(bps_list_b0));
-    for (int i = 0; i < bps_list_b0.size(); i++) {
+    for (size_t i = 0; i < bps_list_b0.size(); i++) {
         bps_list_b0[i].first -= 1;
         bps_list_b0[i].second -= 1;
     }
@@ -802,7 +802,7 @@ main(int argc, char **argv) {
 
     // check input
     //=============
-    if (interaction.basePairs.size() < seed_len) {
+    if (interaction.basePairs.size() < static_cast<size_t>(seed_len)) {
         std::cout << "seed longer than interaction" << std::endl;
         //       throw std::exception();
         return 1;
@@ -820,7 +820,6 @@ main(int argc, char **argv) {
     int q = interaction.basePairs.size(); // number of base pairs in structure
     double full_energy = em.get_e(0, q - 1);
     double full_hybrid_energy = em.get_hybrid_e(0, q - 1);
-    int v = q * q + q; // size of energy matrix/array
 
     // output structures
     // =================
@@ -867,7 +866,8 @@ main(int argc, char **argv) {
     // iterate over all start points (seeds)
     // =====================================
 
-    for (int start = 0; start <= interaction.basePairs.size() - seed_len;
+    for (int start = 0;
+         start <= static_cast<int>(interaction.basePairs.size()) - seed_len;
          start++) {
         //   compute min barrier for current seed
         //   ====================================
