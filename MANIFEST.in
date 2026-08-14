@@ -1,0 +1,2 @@
+include src/rrikindp/RRIkinDP.cpp
+include src/rrikindp/Makefile
